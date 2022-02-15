@@ -8,7 +8,12 @@ import android.content.Context
 import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MarkerOptions
+import com.google.firebase.database.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -17,6 +22,7 @@ import ns.fajnet.android.puftocatorclient.R
 import ns.fajnet.android.puftocatorclient.common.Constants
 import ns.fajnet.android.puftocatorclient.common.LogEx
 import ns.fajnet.android.puftocatorclient.common.Utils
+import ns.fajnet.android.puftocatorclient.models.LocationInfo
 
 
 class GeoService : Service() {
@@ -25,7 +31,11 @@ class GeoService : Service() {
 
     private val mBinder: IBinder = MyBinder()
 
+    private var database: FirebaseDatabase = FirebaseDatabase.getInstance()
+    private var dbReference: DatabaseReference = database.getReference(Constants.FIREBASE_REFERENCE)
+
     private lateinit var serviceScope: CoroutineScope
+    private lateinit var locListener : ValueEventListener
 
     // overrides -------------------------------------------------------------------------------------------------------
 
@@ -42,7 +52,7 @@ class GeoService : Service() {
             startForeground(Constants.SERVICE_ID_GEO_SERVICE, generateNotification())
 
             if (checkPrerequisites()) {
-                // TODO: subscribe to firebase changes
+                subscribeToFirebaseUpdates()
             } else {
                 stopSelf()
             }
@@ -58,6 +68,7 @@ class GeoService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         LogEx.d(Constants.TAG_GEO_SERVICE, "onDestroy")
+        unsubscribeFromFirebaseUpdates()
         serviceScope.cancel()
     }
 
@@ -65,6 +76,26 @@ class GeoService : Service() {
 
     private fun initialize() {
         serviceScope = CoroutineScope(Dispatchers.IO)
+
+        locListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.exists()) {
+                    val location = snapshot.getValue(LocationInfo::class.java)
+                    val locationLat = location?.latitude
+                    val locationLong = location?.longitude
+
+                    if (locationLat != null && locationLong != null) {
+                        // TODO: publish targetLiveData!
+                    } else {
+                        LogEx.e(Constants.TAG_MAPS_ACTIVITY, "user location cannot be found")
+                    }
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Toast.makeText(applicationContext, "Could not read from database", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     private fun checkPrerequisites(): Boolean {
@@ -91,7 +122,7 @@ class GeoService : Service() {
     }
 
     @Suppress("DEPRECATION")
-    fun isServiceRunningInForeground(context: Context, serviceClass: Class<*>): Boolean {
+    private fun isServiceRunningInForeground(context: Context, serviceClass: Class<*>): Boolean {
         val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         for (service in manager.getRunningServices(Int.MAX_VALUE)) {
             if (serviceClass.name == service.service.className) {
@@ -100,6 +131,15 @@ class GeoService : Service() {
         }
 
         return false
+    }
+
+    private fun subscribeToFirebaseUpdates() {
+        dbReference.addValueEventListener(locListener)
+
+    }
+
+    private fun unsubscribeFromFirebaseUpdates() {
+        dbReference.removeEventListener(locListener)
     }
 
 
