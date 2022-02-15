@@ -2,14 +2,16 @@ package ns.fajnet.android.puftocatorclient
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.ComponentName
 import android.content.Context
-import android.content.pm.PackageManager
-import android.location.LocationManager
+import android.content.Intent
+import android.content.ServiceConnection
 import android.os.Bundle
+import android.os.IBinder
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -20,11 +22,16 @@ import com.google.android.gms.maps.model.MarkerOptions
 import com.google.firebase.database.*
 import ns.fajnet.android.puftocatorclient.common.Constants
 import ns.fajnet.android.puftocatorclient.common.LogEx
+import ns.fajnet.android.puftocatorclient.common.Utils
 import ns.fajnet.android.puftocatorclient.models.LocationInfo
+import ns.fajnet.android.puftocatorclient.repositories.ServiceRepository
+import ns.fajnet.android.puftocatorclient.services.GeoService
 
-class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
+class MapsActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback {
 
     // members ---------------------------------------------------------------------------------------------------------
+
+    private val viewModel: MapsActivityViewModel by viewModels()
 
     private lateinit var map: GoogleMap
     private var database: FirebaseDatabase = FirebaseDatabase.getInstance()
@@ -46,12 +53,29 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         (supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment).getMapAsync(this)
     }
 
+    override fun onPostCreate(savedInstanceState: Bundle?) {
+        super.onPostCreate(savedInstanceState)
+
+        viewModel.startService()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val intent = Intent(this, GeoService::class.java)
+        bindService(intent, this, Context.BIND_AUTO_CREATE)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        unbindService(this)
+    }
+
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
 
         when {
-            isPermissionGranted() -> when {
-                isLocationEnabled() -> {
+            Utils.isPermissionGranted(this) -> when {
+                Utils.isLocationEnabled(this) -> {
                     enableMyLocation()
                 }
                 else -> {
@@ -62,6 +86,19 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         dbReference.addValueEventListener(locListener)
+    }
+
+    // ServiceConnection -----------------------------------------------------------------------------------------------
+
+    override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+        val binder = service as GeoService.MyBinder
+        ServiceRepository.setGeoReceiverServiceReference(binder.service)
+        LogEx.d(Constants.TAG_MAPS_ACTIVITY, "connected to service")
+    }
+
+    override fun onServiceDisconnected(name: ComponentName?) {
+        ServiceRepository.unsetGeoReceiverServiceReference()
+        LogEx.d(Constants.TAG_MAPS_ACTIVITY, "disconnected from service")
     }
 
     // private methods -------------------------------------------------------------------------------------------------
@@ -104,29 +141,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun enableMyLocation() {
         map.isMyLocationEnabled = true
         map.uiSettings.isMyLocationButtonEnabled = true
-    }
-
-    private fun isPermissionGranted(): Boolean {
-        val permissionStatus = ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        )
-
-        val result = permissionStatus == PackageManager.PERMISSION_GRANTED
-        LogEx.i(Constants.TAG_MAPS_ACTIVITY, "Location permission granted: $result")
-
-        return result
-    }
-
-    private fun isLocationEnabled(): Boolean {
-        val locationManager: LocationManager =
-            getSystemService(Context.LOCATION_SERVICE) as LocationManager
-
-        val result = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
-                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-        LogEx.i(Constants.TAG_MAPS_ACTIVITY, "Location enabled: $result")
-
-        return result
     }
 
     private fun requestLocationPermission() {

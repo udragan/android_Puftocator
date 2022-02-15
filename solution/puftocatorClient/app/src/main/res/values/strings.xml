@@ -3,4 +3,8 @@
     <string name="title_activity_maps">Map</string>
 
     <string name="find_user_location">Find User location</string>
+
+    <string name="geo_service_description">Puftocator service</string>
+    <string name="geo_service_notification_title">Puftocator service</string>
+    <string name="geo_service_notification_text">Tracking in progress..</string>
 </resources>
