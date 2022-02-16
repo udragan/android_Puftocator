@@ -8,7 +8,6 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Bundle
 import android.os.IBinder
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -19,12 +18,9 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
-import com.google.firebase.database.*
 import ns.fajnet.android.puftocatorclient.common.Constants
 import ns.fajnet.android.puftocatorclient.common.LogEx
 import ns.fajnet.android.puftocatorclient.common.Utils
-import ns.fajnet.android.puftocatorclient.models.LocationInfo
-import ns.fajnet.android.puftocatorclient.repositories.ServiceRepository
 import ns.fajnet.android.puftocatorclient.services.GeoService
 
 class MapsActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback {
@@ -33,16 +29,12 @@ class MapsActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
 
     private val viewModel: MapsActivityViewModel by viewModels()
 
-    private lateinit var map: GoogleMap
-    private var database: FirebaseDatabase = FirebaseDatabase.getInstance()
-    private var dbReference: DatabaseReference = database.getReference(Constants.FIREBASE_REFERENCE)
-
     private val requestPermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
             handlePermissionGrants(permissions)
         }
-
     private var targetMarker: Marker? = null
+    private lateinit var map: GoogleMap
 
     // overrides -------------------------------------------------------------------------------------------------------
 
@@ -72,6 +64,7 @@ class MapsActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
 
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
+        bindLiveData()
 
         when {
             Utils.isPermissionGranted(this) -> when {
@@ -84,56 +77,41 @@ class MapsActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
             }
             else -> requestLocationPermission()
         }
-
-        dbReference.addValueEventListener(locListener)
     }
 
     // ServiceConnection -----------------------------------------------------------------------------------------------
 
     override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
         val binder = service as GeoService.MyBinder
-        ServiceRepository.setGeoReceiverServiceReference(binder.service)
         LogEx.d(Constants.TAG_MAPS_ACTIVITY, "connected to service")
+        viewModel.setGeoService(binder.service)
     }
 
     override fun onServiceDisconnected(name: ComponentName?) {
-        ServiceRepository.unsetGeoReceiverServiceReference()
         LogEx.d(Constants.TAG_MAPS_ACTIVITY, "disconnected from service")
     }
 
     // private methods -------------------------------------------------------------------------------------------------
 
-    private val locListener = object : ValueEventListener {
-        override fun onDataChange(snapshot: DataSnapshot) {
-            if (snapshot.exists()) {
-                val location = snapshot.getValue(LocationInfo::class.java)
-                val locationLat = location?.latitude
-                val locationLong = location?.longitude
+    private fun bindLiveData() {
+        viewModel.liveTargetLocation.observe(this) {
+            if (it != null) {
+                val latLng = LatLng(it.latitude, it.longitude)
 
-                if (locationLat != null && locationLong != null) {
-                    val latLng = LatLng(locationLat, locationLong)
-
-                    if (targetMarker == null) {
-                        targetMarker = map.addMarker(
-                            MarkerOptions().position(latLng)
-                                .flat(true)
-                                .title("Target")
-                        )
-                    }
-
-                    targetMarker?.position = latLng
-                    targetMarker?.rotation = 45f
-
-                    val update = CameraUpdateFactory.newLatLngZoom(latLng, 16.0f)
-                    map.moveCamera(update)
-                } else {
-                    LogEx.e(Constants.TAG_MAPS_ACTIVITY, "user location cannot be found")
+                if (targetMarker == null) {
+                    targetMarker = map.addMarker(
+                        MarkerOptions().position(latLng)
+                            .flat(true)
+                            .title("Target")
+                    )
                 }
-            }
-        }
 
-        override fun onCancelled(error: DatabaseError) {
-            Toast.makeText(applicationContext, "Could not read from database", Toast.LENGTH_LONG).show()
+                targetMarker?.position = latLng
+                targetMarker?.rotation = 45f
+
+                val update = CameraUpdateFactory.newLatLngZoom(latLng, 16.0f)
+                map.moveCamera(update)
+            }
         }
     }
 

@@ -10,9 +10,8 @@ import android.os.Binder
 import android.os.IBinder
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MarkerOptions
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import com.google.firebase.database.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,13 +28,15 @@ class GeoService : Service() {
 
     // members ---------------------------------------------------------------------------------------------------------
 
+    private val _liveTargetLocationUpdate = MutableLiveData<LocationInfo>()
+
     private val mBinder: IBinder = MyBinder()
 
     private var database: FirebaseDatabase = FirebaseDatabase.getInstance()
     private var dbReference: DatabaseReference = database.getReference(Constants.FIREBASE_REFERENCE)
 
     private lateinit var serviceScope: CoroutineScope
-    private lateinit var locListener : ValueEventListener
+    private lateinit var firebaseListener: ValueEventListener
 
     // overrides -------------------------------------------------------------------------------------------------------
 
@@ -72,20 +73,23 @@ class GeoService : Service() {
         serviceScope.cancel()
     }
 
+    // properties ------------------------------------------------------------------------------------------------------
+
+    val liveTargetLocation: LiveData<LocationInfo>
+        get() = _liveTargetLocationUpdate
+
     // private methods -------------------------------------------------------------------------------------------------
 
     private fun initialize() {
         serviceScope = CoroutineScope(Dispatchers.IO)
 
-        locListener = object : ValueEventListener {
+        firebaseListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {
                     val location = snapshot.getValue(LocationInfo::class.java)
-                    val locationLat = location?.latitude
-                    val locationLong = location?.longitude
 
-                    if (locationLat != null && locationLong != null) {
-                        // TODO: publish targetLiveData!
+                    if (location != null) {
+                        _liveTargetLocationUpdate.postValue(location)
                     } else {
                         LogEx.e(Constants.TAG_MAPS_ACTIVITY, "user location cannot be found")
                     }
@@ -134,12 +138,12 @@ class GeoService : Service() {
     }
 
     private fun subscribeToFirebaseUpdates() {
-        dbReference.addValueEventListener(locListener)
+        dbReference.addValueEventListener(firebaseListener)
 
     }
 
     private fun unsubscribeFromFirebaseUpdates() {
-        dbReference.removeEventListener(locListener)
+        dbReference.removeEventListener(firebaseListener)
     }
 
 

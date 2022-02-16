@@ -18,9 +18,8 @@ internal class Constants {
 
         // logger tags -------------------------------------------------------------------------------------------------
 
-        const val TAG_MAPS_ACTIVITY = "appTag_maps"
-
-        const val TAG_SERVICE_REPOSITORY = "appTag_service_repository"
+        const val TAG_MAPS_ACTIVITY = "appTag_maps_activity"
+        const val TAG_MAPS_ACTIVITY_VIEW_MODEL = "appTag_maps_activity_view_model"
 
         const val TAG_GEO_SERVICE = "appTag_geoService"
 
