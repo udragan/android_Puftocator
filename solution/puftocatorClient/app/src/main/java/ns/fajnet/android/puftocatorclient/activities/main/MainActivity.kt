@@ -12,9 +12,12 @@ import android.view.MenuItem
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
+import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
@@ -30,6 +33,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
 
     // members ---------------------------------------------------------------------------------------------------------
 
+    private lateinit var binding: ActivityMainBinding
     private val viewModel: MainActivityViewModel by viewModels()
 
     private val requestPermissions =
@@ -38,7 +42,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
         }
     private var targetMarker: Marker? = null
     private lateinit var map: GoogleMap
-    private lateinit var binding: ActivityMainBinding
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
 
     // overrides -------------------------------------------------------------------------------------------------------
 
@@ -47,6 +51,8 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
+        (supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment).getMapAsync(this)
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
     }
 
     override fun onPostCreate(savedInstanceState: Bundle?) {
@@ -138,7 +144,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
 
                 val update = CameraUpdateFactory.newLatLngZoom(latLng, 16.0f)
                 map.moveCamera(update)
-            } else{
+            } else {
                 targetMarker?.isVisible = false
             }
         }
@@ -148,6 +154,11 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
     private fun enableMyLocation() {
         map.isMyLocationEnabled = true
         map.uiSettings.isMyLocationButtonEnabled = true
+        fusedLocationClient.lastLocation.addOnSuccessListener {
+            if (it != null) {
+                map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(it.latitude, it.longitude), 16f))
+            }
+        }
     }
 
     private fun requestLocationPermission() {
