@@ -33,6 +33,7 @@ class MapsActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
             handlePermissionGrants(permissions)
         }
+    private var hostMarker: Marker? = null
     private var targetMarker: Marker? = null
     private lateinit var map: GoogleMap
 
@@ -94,6 +95,22 @@ class MapsActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
     // private methods -------------------------------------------------------------------------------------------------
 
     private fun bindLiveData() {
+        viewModel.liveHostLocation.observe(this) {
+            if (it != null) {
+                val latLng = LatLng(it.latitude, it.longitude)
+
+                if (hostMarker == null) {
+                    hostMarker = map.addMarker(
+                        MarkerOptions().position(latLng)
+                            .flat(true)
+                            .title("Host")
+                    )
+                }
+
+                hostMarker?.position = latLng
+                hostMarker?.rotation = -45f
+            }
+        }
         viewModel.liveTargetLocation.observe(this) {
             if (it != null) {
                 val latLng = LatLng(it.latitude, it.longitude)
