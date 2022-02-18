@@ -7,6 +7,8 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Bundle
 import android.os.IBinder
+import android.view.Menu
+import android.view.MenuItem
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -16,6 +18,8 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
+import ns.fajnet.android.puftocatorclient.R
+import ns.fajnet.android.puftocatorclient.activities.settings.SettingsActivity
 import ns.fajnet.android.puftocatorclient.common.Constants
 import ns.fajnet.android.puftocatorclient.common.LogEx
 import ns.fajnet.android.puftocatorclient.common.Utils
@@ -60,6 +64,28 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
     override fun onPause() {
         super.onPause()
         unbindService(this)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_main_activity, menu)
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_settings -> {
+                val intent = Intent(this, SettingsActivity::class.java)
+                startActivity(intent)
+                true
+            }
+            R.id.action_exit -> {
+                val intent = Intent(this, GeoService::class.java)
+                stopService(intent)
+                finishAndRemoveTask()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
