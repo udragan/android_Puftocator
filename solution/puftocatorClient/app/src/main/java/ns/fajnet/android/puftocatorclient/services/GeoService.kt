@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.location.Location
 import android.os.Binder
 import android.os.IBinder
@@ -11,6 +12,7 @@ import android.os.Looper
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.google.android.gms.location.*
@@ -59,9 +61,7 @@ class GeoService : Service() {
         LogEx.d(Constants.TAG_GEO_SERVICE, "onStartCommand")
 
         if (!isServiceRunningInForeground(this, GeoService::class.java)) {
-            val notificationId = generateNotification()
-            startForeground(Constants.NOTIFICATION_SERVICE_ID_GEO_SERVICE, notificationId)
-
+            startForeground(Constants.NOTIFICATION_SERVICE_ID_GEO_SERVICE, generateNotification())
 
             if (checkPrerequisites()) {
                 subscribeToLocationUpdates()
@@ -148,40 +148,47 @@ class GeoService : Service() {
     }
 
     private fun generateNotification(): Notification {
-        val notificationIntent = Intent(this, MapsActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0)
+        val notificationIntent = Intent(this, MapsActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT)
 
         return NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID_GEO_SERVICE)
             .setContentTitle(getString(R.string.geo_service_notification_title))
             .setContentText(getString(R.string.geo_service_notification_text))
-            .setSmallIcon(android.R.drawable.ic_menu_compass)
+            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentIntent(pendingIntent)
             .build()
     }
 
     private fun generateNotification(content: String): Notification {
-        val notificationIntent = Intent(this, MapsActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0)
+        val notificationIntent = Intent(this, MapsActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT)
 
         return NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID_GEO_SERVICE)
             .setContentTitle(getString(R.string.geo_service_notification_title))
             .setContentText(content)
-            .setSmallIcon(android.R.drawable.ic_menu_compass)
+            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setLargeIcon(BitmapFactory.decodeResource(resources, android.R.drawable.ic_menu_myplaces))
             .setContentIntent(pendingIntent)
             .setOnlyAlertOnce(false)
-            .setColor(resources.getColor(R.color.teal_700))
+            .setColor(ContextCompat.getColor(this, R.color.teal_700))
             .setColorized(true)
             .build()
     }
 
     private fun generateSilentNotification(): Notification {
-        val notificationIntent = Intent(this, MapsActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0)
+        val notificationIntent = Intent(this, MapsActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT)
 
         return NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID_GEO_SERVICE)
             .setContentTitle(getString(R.string.geo_service_notification_title))
             .setContentText(getString(R.string.geo_service_notification_text))
-            .setSmallIcon(android.R.drawable.ic_menu_compass)
+            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentIntent(pendingIntent)
             .setOnlyAlertOnce(true)
             .build()

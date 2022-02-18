@@ -22,6 +22,8 @@ class AppInit : Application() {
                 Constants.NOTIFICATION_CHANNEL_NAME_GEO_SERVICE,
                 NotificationManager.IMPORTANCE_DEFAULT
             )
+            serviceChannel.enableVibration(true)
+
             val notificationManager = getSystemService(
                 NotificationManager::class.java
             )
