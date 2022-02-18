@@ -1,9 +1,8 @@
-package ns.fajnet.android.puftocatorclient
+package ns.fajnet.android.puftocatorclient.activities.main
 
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Bundle
@@ -14,39 +13,36 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
-import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import ns.fajnet.android.puftocatorclient.common.Constants
 import ns.fajnet.android.puftocatorclient.common.LogEx
 import ns.fajnet.android.puftocatorclient.common.Utils
-import ns.fajnet.android.puftocatorclient.databinding.ActivityMapsBinding
+import ns.fajnet.android.puftocatorclient.databinding.ActivityMainBinding
 import ns.fajnet.android.puftocatorclient.services.GeoService
 
-class MapsActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback {
+class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback {
 
     // members ---------------------------------------------------------------------------------------------------------
 
-    private val viewModel: MapsActivityViewModel by viewModels()
+    private val viewModel: MainActivityViewModel by viewModels()
 
     private val requestPermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
             handlePermissionGrants(permissions)
         }
-    private var hostMarker: Marker? = null
     private var targetMarker: Marker? = null
     private lateinit var map: GoogleMap
-    private lateinit var binding: ActivityMapsBinding
+    private lateinit var binding: ActivityMainBinding
 
     // overrides -------------------------------------------------------------------------------------------------------
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMapsBinding.inflate(layoutInflater)
+        binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
-        (supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment).getMapAsync(this)
     }
 
     override fun onPostCreate(savedInstanceState: Bundle?) {
@@ -58,7 +54,7 @@ class MapsActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
     override fun onResume() {
         super.onResume()
         val intent = Intent(this, GeoService::class.java)
-        bindService(intent, this, Context.BIND_AUTO_CREATE)
+        bindService(intent, this, BIND_AUTO_CREATE)
     }
 
     override fun onPause() {

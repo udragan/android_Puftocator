@@ -1,4 +1,4 @@
-package ns.fajnet.android.puftocatorclient
+package ns.fajnet.android.puftocatorclient.activities.main
 
 import android.app.Application
 import android.content.Context
@@ -13,7 +13,7 @@ import ns.fajnet.android.puftocatorclient.common.LogEx
 import ns.fajnet.android.puftocatorclient.models.LocationInfo
 import ns.fajnet.android.puftocatorclient.services.GeoService
 
-class MapsActivityViewModel(application: Application) : AndroidViewModel(application) {
+class MainActivityViewModel(application: Application) : AndroidViewModel(application) {
 
     // members ---------------------------------------------------------------------------------------------------------
 

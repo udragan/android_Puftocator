@@ -18,8 +18,8 @@ import androidx.lifecycle.MutableLiveData
 import com.google.android.gms.location.*
 import com.google.firebase.database.*
 import kotlinx.coroutines.*
-import ns.fajnet.android.puftocatorclient.MapsActivity
 import ns.fajnet.android.puftocatorclient.R
+import ns.fajnet.android.puftocatorclient.activities.main.MainActivity
 import ns.fajnet.android.puftocatorclient.common.Constants
 import ns.fajnet.android.puftocatorclient.common.LogEx
 import ns.fajnet.android.puftocatorclient.common.Utils
@@ -148,7 +148,7 @@ class GeoService : Service() {
     }
 
     private fun generateNotification(): Notification {
-        val notificationIntent = Intent(this, MapsActivity::class.java).apply {
+        val notificationIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT)
@@ -162,7 +162,7 @@ class GeoService : Service() {
     }
 
     private fun generateNotification(content: String): Notification {
-        val notificationIntent = Intent(this, MapsActivity::class.java).apply {
+        val notificationIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT)
@@ -180,7 +180,7 @@ class GeoService : Service() {
     }
 
     private fun generateSilentNotification(): Notification {
-        val notificationIntent = Intent(this, MapsActivity::class.java).apply {
+        val notificationIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT)
