@@ -21,6 +21,7 @@ import com.google.android.gms.maps.model.MarkerOptions
 import ns.fajnet.android.puftocatorclient.common.Constants
 import ns.fajnet.android.puftocatorclient.common.LogEx
 import ns.fajnet.android.puftocatorclient.common.Utils
+import ns.fajnet.android.puftocatorclient.databinding.ActivityMapsBinding
 import ns.fajnet.android.puftocatorclient.services.GeoService
 
 class MapsActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback {
@@ -36,13 +37,15 @@ class MapsActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
     private var hostMarker: Marker? = null
     private var targetMarker: Marker? = null
     private lateinit var map: GoogleMap
+    private lateinit var binding: ActivityMapsBinding
 
     // overrides -------------------------------------------------------------------------------------------------------
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_maps)
-
+        binding = ActivityMapsBinding.inflate(layoutInflater)
+        val view = binding.root
+        setContentView(view)
         (supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment).getMapAsync(this)
     }
 

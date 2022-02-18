@@ -119,13 +119,17 @@ class GeoService : Service() {
 
         firebaseListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                if (snapshot.exists()) {
-                    val location = snapshot.getValue(LocationInfo::class.java)
+                LogEx.d(Constants.TAG_GEO_SERVICE, "firebaseCallbackTriggered")
 
-                    if (location != null) {
-                        _liveTargetLocation.postValue(location!!)
-                    } else {
-                        LogEx.e(Constants.TAG_MAPS_ACTIVITY, "target location cannot be found")
+                serviceScope.launch {
+                    if (snapshot.exists()) {
+                        val location = snapshot.getValue(LocationInfo::class.java)
+
+                        if (location != null) {
+                            _liveTargetLocation.postValue(location!!)
+                        } else {
+                            LogEx.e(Constants.TAG_MAPS_ACTIVITY, "target location cannot be found")
+                        }
                     }
                 }
             }
