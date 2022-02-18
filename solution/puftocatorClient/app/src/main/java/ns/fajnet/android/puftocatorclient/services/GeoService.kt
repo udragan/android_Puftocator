@@ -1,17 +1,16 @@
 package ns.fajnet.android.puftocatorclient.services
 
 import android.annotation.SuppressLint
-import android.app.ActivityManager
-import android.app.Notification
-import android.app.PendingIntent
-import android.app.Service
+import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.location.Location
 import android.os.Binder
 import android.os.IBinder
 import android.os.Looper
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.google.android.gms.location.*
@@ -34,21 +33,19 @@ class GeoService : Service() {
     private val locationRequestMaxWaitTime: Long = 1000//120000       // 120 sec
     private val locationRequestSmallestDisplacement = 50f      // 50 meters
 
-    private val _liveHostLocation = MutableLiveData<LocationInfo>()
-    private val _liveTargetLocation = MutableLiveData<LocationInfo>()
+    private val _liveTargetLocation = MutableLiveData<LocationInfo?>()
 
     private val mBinder: IBinder = MyBinder()
 
     private var database: FirebaseDatabase = FirebaseDatabase.getInstance()
     private var dbReference: DatabaseReference = database.getReference(Constants.FIREBASE_REFERENCE)
 
-
     private lateinit var serviceScope: CoroutineScope
-
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
-
     private lateinit var firebaseListener: ValueEventListener
+    private lateinit var hostLocation: Location
+    private lateinit var targetLocation: Location
 
     // overrides -------------------------------------------------------------------------------------------------------
 
@@ -62,7 +59,9 @@ class GeoService : Service() {
         LogEx.d(Constants.TAG_GEO_SERVICE, "onStartCommand")
 
         if (!isServiceRunningInForeground(this, GeoService::class.java)) {
-            startForeground(Constants.SERVICE_ID_GEO_SERVICE, generateNotification())
+            val notificationId = generateNotification()
+            startForeground(Constants.NOTIFICATION_SERVICE_ID_GEO_SERVICE, notificationId)
+
 
             if (checkPrerequisites()) {
                 subscribeToLocationUpdates()
@@ -89,9 +88,7 @@ class GeoService : Service() {
 
     // properties ------------------------------------------------------------------------------------------------------
 
-    val liveHostLocation: LiveData<LocationInfo>
-        get() = _liveHostLocation
-    val liveTargetLocation: LiveData<LocationInfo>
+    val liveTargetLocation: LiveData<LocationInfo?>
         get() = _liveTargetLocation
 
     // private methods -------------------------------------------------------------------------------------------------
@@ -107,10 +104,8 @@ class GeoService : Service() {
                 serviceScope.launch {
                     for (location in locationResult.locations) {
                         LogEx.d(Constants.TAG_GEO_SERVICE, "location received: $location")
-
-                        val locationInfo = LocationInfo(longitude = location.longitude, latitude = location.latitude)
-
-                        _liveHostLocation.postValue(locationInfo)
+                        hostLocation = location
+                        calculateThreat()
                         LogEx.d(Constants.TAG_GEO_SERVICE, "track update published")
                     }
                 }
@@ -126,10 +121,13 @@ class GeoService : Service() {
                         val location = snapshot.getValue(LocationInfo::class.java)
 
                         if (location != null) {
-                            _liveTargetLocation.postValue(location!!)
+                            LogEx.d(Constants.TAG_GEO_SERVICE, "firebase location received: $location")
+                            targetLocation = location.toLocation()
                         } else {
-                            LogEx.e(Constants.TAG_MAPS_ACTIVITY, "target location cannot be found")
+                            LogEx.e(Constants.TAG_MAPS_ACTIVITY, "firebase location cannot be found")
                         }
+
+                        calculateThreat()
                     }
                 }
             }
@@ -158,6 +156,34 @@ class GeoService : Service() {
             .setContentText(getString(R.string.geo_service_notification_text))
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setContentIntent(pendingIntent)
+            .build()
+    }
+
+    private fun generateNotification(content: String): Notification {
+        val notificationIntent = Intent(this, MapsActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0)
+
+        return NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID_GEO_SERVICE)
+            .setContentTitle(getString(R.string.geo_service_notification_title))
+            .setContentText(content)
+            .setSmallIcon(android.R.drawable.ic_menu_compass)
+            .setContentIntent(pendingIntent)
+            .setOnlyAlertOnce(false)
+            .setColor(resources.getColor(R.color.teal_700))
+            .setColorized(true)
+            .build()
+    }
+
+    private fun generateSilentNotification(): Notification {
+        val notificationIntent = Intent(this, MapsActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0)
+
+        return NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID_GEO_SERVICE)
+            .setContentTitle(getString(R.string.geo_service_notification_title))
+            .setContentText(getString(R.string.geo_service_notification_text))
+            .setSmallIcon(android.R.drawable.ic_menu_compass)
+            .setContentIntent(pendingIntent)
+            .setOnlyAlertOnce(true)
             .build()
     }
 
@@ -216,6 +242,28 @@ class GeoService : Service() {
             maxWaitTime = locationRequestMaxWaitTime
             smallestDisplacement = locationRequestSmallestDisplacement
             priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+        }
+    }
+
+    private fun calculateThreat() {
+        if (!this::hostLocation.isInitialized || !this::targetLocation.isInitialized) {
+            _liveTargetLocation.postValue(null)
+            return
+        }
+
+        val distance = hostLocation.distanceTo(targetLocation)
+
+        // TODO: read distance from settings (in meters)
+        if (distance < 100) {
+            // TODO: publish notification
+            NotificationManagerCompat.from(this)
+                .notify(Constants.NOTIFICATION_SERVICE_ID_GEO_SERVICE, generateNotification(distance.toString()))
+            _liveTargetLocation.postValue(LocationInfo.fromLocation(targetLocation))
+        } else {
+            // TODO: publish silent notification
+            NotificationManagerCompat.from(this)
+                .notify(Constants.NOTIFICATION_SERVICE_ID_GEO_SERVICE, generateSilentNotification())
+            _liveTargetLocation.postValue(null)
         }
     }
 

@@ -18,18 +18,14 @@ class MapsActivityViewModel(application: Application) : AndroidViewModel(applica
     // members ---------------------------------------------------------------------------------------------------------
 
     private val context: Context by lazy { application }
-    private val hostObserver: Observer<LocationInfo> = Observer { _liveHostLocation.postValue(it) }
-    private val targetObserver: Observer<LocationInfo> = Observer { _liveTargetLocation.postValue(it) }
-    private val _liveHostLocation: MutableLiveData<LocationInfo> by lazy { MutableLiveData<LocationInfo>() }
-    private val _liveTargetLocation: MutableLiveData<LocationInfo> by lazy { MutableLiveData<LocationInfo>() }
+    private val targetObserver: Observer<LocationInfo?> = Observer { _liveTargetLocation.postValue(it) }
+    private val _liveTargetLocation: MutableLiveData<LocationInfo?> by lazy { MutableLiveData<LocationInfo?>() }
 
     private lateinit var geoService: GeoService
 
     // properties ------------------------------------------------------------------------------------------------------
 
-    val liveHostLocation: LiveData<LocationInfo>
-        get() = _liveHostLocation
-    val liveTargetLocation: LiveData<LocationInfo>
+    val liveTargetLocation: LiveData<LocationInfo?>
         get() = _liveTargetLocation
 
     // overrides  ------------------------------------------------------------------------------------------------------
@@ -37,7 +33,6 @@ class MapsActivityViewModel(application: Application) : AndroidViewModel(applica
     override fun onCleared() {
         super.onCleared()
 
-        geoService.liveHostLocation.removeObserver(hostObserver)
         geoService.liveTargetLocation.removeObserver(targetObserver)
         LogEx.d(Constants.TAG_MAPS_ACTIVITY_VIEW_MODEL, "clearing observer")
     }
@@ -58,7 +53,6 @@ class MapsActivityViewModel(application: Application) : AndroidViewModel(applica
         }
 
         geoService = service
-        geoService.liveHostLocation.observeForever(hostObserver)
         geoService.liveTargetLocation.observeForever(targetObserver)
     }
 }

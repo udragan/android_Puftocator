@@ -98,22 +98,6 @@ class MapsActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
     // private methods -------------------------------------------------------------------------------------------------
 
     private fun bindLiveData() {
-        viewModel.liveHostLocation.observe(this) {
-            if (it != null) {
-                val latLng = LatLng(it.latitude, it.longitude)
-
-                if (hostMarker == null) {
-                    hostMarker = map.addMarker(
-                        MarkerOptions().position(latLng)
-                            .flat(true)
-                            .title("Host")
-                    )
-                }
-
-                hostMarker?.position = latLng
-                hostMarker?.rotation = -45f
-            }
-        }
         viewModel.liveTargetLocation.observe(this) {
             if (it != null) {
                 val latLng = LatLng(it.latitude, it.longitude)
@@ -128,9 +112,12 @@ class MapsActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
 
                 targetMarker?.position = latLng
                 targetMarker?.rotation = 45f
+                targetMarker?.isVisible = true
 
                 val update = CameraUpdateFactory.newLatLngZoom(latLng, 16.0f)
                 map.moveCamera(update)
+            } else{
+                targetMarker?.isVisible = false
             }
         }
     }

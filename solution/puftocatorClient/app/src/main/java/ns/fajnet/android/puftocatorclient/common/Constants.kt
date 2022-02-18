@@ -7,14 +7,11 @@ internal class Constants {
 
         const val FIREBASE_REFERENCE = "message"
 
-        // notification channels ---------------------------------------------------------------------------------------
+        // geo service -------------------------------------------------------------------------------------------------
 
         const val NOTIFICATION_CHANNEL_ID_GEO_SERVICE = "geoNotificationChannel"
         const val NOTIFICATION_CHANNEL_NAME_GEO_SERVICE = "GEO Service Channel"
-
-        // service ids -------------------------------------------------------------------------------------------------
-
-        const val SERVICE_ID_GEO_SERVICE = 1000
+        const val NOTIFICATION_SERVICE_ID_GEO_SERVICE = 1000
 
         // logger tags -------------------------------------------------------------------------------------------------
 
