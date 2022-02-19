@@ -5,8 +5,8 @@ import com.google.firebase.database.IgnoreExtraProperties
 
 @IgnoreExtraProperties
 data class LocationInfo(
-    var longitude: Double = 0.0,
     var latitude: Double = 0.0,
+    var longitude: Double = 0.0,
     var altitude: Double = 0.0,
     var speed: Float = 0f,
 
@@ -21,8 +21,8 @@ data class LocationInfo(
 
     fun toLocation(): Location {
         val location = Location("local")
-        location.longitude = longitude
         location.latitude = latitude
+        location.longitude = longitude
         location.altitude = altitude
         location.speed = speed
         location.accuracy = accuracy
@@ -38,8 +38,8 @@ data class LocationInfo(
     companion object {
         fun fromLocation(location: Location): LocationInfo {
             return LocationInfo(
-                location.longitude,
                 location.latitude,
+                location.longitude,
                 location.altitude,
                 location.speed,
                 location.accuracy,

@@ -1,7 +1,10 @@
 package ns.fajnet.android.puftocatorclient.services
 
 import android.annotation.SuppressLint
-import android.app.*
+import android.app.ActivityManager
+import android.app.Notification
+import android.app.PendingIntent
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
@@ -118,11 +121,11 @@ class GeoService : Service() {
 
                 serviceScope.launch {
                     if (snapshot.exists()) {
-                        val location = snapshot.getValue(LocationInfo::class.java)
+                        val locationInfo = snapshot.getValue(LocationInfo::class.java)
 
-                        if (location != null) {
-                            LogEx.d(Constants.TAG_GEO_SERVICE, "firebase location received: $location")
-                            targetLocation = location.toLocation()
+                        if (locationInfo != null) {
+                            LogEx.d(Constants.TAG_GEO_SERVICE, "firebase location received: $locationInfo")
+                            targetLocation = locationInfo.toLocation()
                         } else {
                             LogEx.e(Constants.TAG_MAPS_ACTIVITY, "firebase location cannot be found")
                         }
@@ -151,7 +154,12 @@ class GeoService : Service() {
         val notificationIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
-        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT)
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            notificationIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_CANCEL_CURRENT
+        )
 
         return NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID_GEO_SERVICE)
             .setContentTitle(getString(R.string.geo_service_notification_title))
@@ -165,7 +173,12 @@ class GeoService : Service() {
         val notificationIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
-        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT)
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            notificationIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_CANCEL_CURRENT
+        )
 
         return NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID_GEO_SERVICE)
             .setContentTitle(getString(R.string.geo_service_notification_title))
@@ -183,7 +196,12 @@ class GeoService : Service() {
         val notificationIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
-        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT)
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            notificationIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_CANCEL_CURRENT
+        )
 
         return NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID_GEO_SERVICE)
             .setContentTitle(getString(R.string.geo_service_notification_title))

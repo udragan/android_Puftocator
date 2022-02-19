@@ -18,15 +18,14 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
-import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.*
 import ns.fajnet.android.puftocatorclient.R
 import ns.fajnet.android.puftocatorclient.activities.settings.SettingsActivity
 import ns.fajnet.android.puftocatorclient.common.Constants
 import ns.fajnet.android.puftocatorclient.common.LogEx
 import ns.fajnet.android.puftocatorclient.common.Utils
 import ns.fajnet.android.puftocatorclient.databinding.ActivityMainBinding
+import ns.fajnet.android.puftocatorclient.models.LocationInfo
 import ns.fajnet.android.puftocatorclient.services.GeoService
 
 class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback {
@@ -41,6 +40,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
             handlePermissionGrants(permissions)
         }
     private var targetMarker: Marker? = null
+    private var targetAccuracy: Circle? = null
     private lateinit var map: GoogleMap
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
@@ -128,26 +128,49 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
     private fun bindLiveData() {
         viewModel.liveTargetLocation.observe(this) {
             if (it != null) {
-                val latLng = LatLng(it.latitude, it.longitude)
-
-                if (targetMarker == null) {
-                    targetMarker = map.addMarker(
-                        MarkerOptions().position(latLng)
-                            .flat(true)
-                            .title("Target")
-                    )
-                }
-
-                targetMarker?.position = latLng
-                targetMarker?.rotation = 45f
-                targetMarker?.isVisible = true
-
-                val update = CameraUpdateFactory.newLatLngZoom(latLng, 16.0f)
-                map.moveCamera(update)
+                setTargetMarker(it)
             } else {
-                targetMarker?.isVisible = false
+                clearTargetMarker()
             }
         }
+    }
+
+    private fun setTargetMarker(locationInfo: LocationInfo) {
+        val latLon = LatLng(locationInfo.latitude, locationInfo.longitude)
+
+        if (targetMarker == null) {
+            targetMarker = map.addMarker(
+                MarkerOptions()
+                    .position(latLon)
+                    .flat(true)
+                    .title("Target")
+            )
+        }
+
+        targetMarker?.position = latLon
+        targetMarker?.rotation = locationInfo.bearing
+        targetMarker?.isVisible = true
+
+        if (targetAccuracy == null) {
+            targetAccuracy = map.addCircle(
+                CircleOptions()
+                    .center(latLon)
+                    .strokeWidth(5f)
+                    .strokeColor(getColor(R.color.marker_radius_stroke))
+                    .fillColor(getColor(R.color.marker_radius_fill))
+            )
+        }
+
+        targetAccuracy?.center = latLon
+        targetAccuracy?.radius = locationInfo.accuracy.toDouble()
+        targetAccuracy?.isVisible = true
+
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(latLon, 16.0f))
+    }
+
+    private fun clearTargetMarker() {
+        targetAccuracy?.isVisible = false
+        targetMarker?.isVisible = false
     }
 
     @SuppressLint("MissingPermission")
