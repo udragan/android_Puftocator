@@ -26,6 +26,7 @@ import ns.fajnet.android.puftocatorclient.activities.main.MainActivity
 import ns.fajnet.android.puftocatorclient.common.Constants
 import ns.fajnet.android.puftocatorclient.common.LogEx
 import ns.fajnet.android.puftocatorclient.common.Utils
+import ns.fajnet.android.puftocatorclient.common.preferences.TriggerRadiusPreference
 import ns.fajnet.android.puftocatorclient.models.LocationInfo
 
 class GeoService : Service() {
@@ -51,6 +52,7 @@ class GeoService : Service() {
     private lateinit var firebaseListener: ValueEventListener
     private lateinit var hostLocation: Location
     private lateinit var targetLocation: Location
+    private lateinit var triggerRadiusPreference: TriggerRadiusPreference
 
     // overrides -------------------------------------------------------------------------------------------------------
 
@@ -86,6 +88,7 @@ class GeoService : Service() {
         LogEx.d(Constants.TAG_GEO_SERVICE, "onDestroy")
         unsubscribeFromFirebaseUpdates()
         unsubscribeFromLocationUpdates()
+        triggerRadiusPreference.dispose()
         serviceScope.cancel()
     }
 
@@ -139,6 +142,8 @@ class GeoService : Service() {
                 Toast.makeText(applicationContext, "Could not read from database", Toast.LENGTH_LONG).show()
             }
         }
+
+        triggerRadiusPreference = TriggerRadiusPreference(applicationContext)
     }
 
     private fun checkPrerequisites(): Boolean {
@@ -278,8 +283,7 @@ class GeoService : Service() {
 
         val distance = hostLocation.distanceTo(targetLocation)
 
-        // TODO: read distance from settings (in meters)
-        if (distance < 100) {
+        if (distance < triggerRadiusPreference.value()) {
             // TODO: publish notification
             NotificationManagerCompat.from(this)
                 .notify(Constants.NOTIFICATION_SERVICE_ID_GEO_SERVICE, generateNotification(distance.toString()))

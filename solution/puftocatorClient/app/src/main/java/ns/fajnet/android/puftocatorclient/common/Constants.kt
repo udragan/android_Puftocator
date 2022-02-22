@@ -19,5 +19,7 @@ internal class Constants {
         const val TAG_MAPS_ACTIVITY_VIEW_MODEL = "appTag_maps_activity_view_model"
 
         const val TAG_GEO_SERVICE = "appTag_geoService"
+
+        const val TAG_PREFERENCE_TRIGGER_RADIUS = "appTag_preference_trigger_radius"
     }
 }
