@@ -26,18 +26,12 @@ import ns.fajnet.android.puftocatorclient.activities.main.MainActivity
 import ns.fajnet.android.puftocatorclient.common.Constants
 import ns.fajnet.android.puftocatorclient.common.LogEx
 import ns.fajnet.android.puftocatorclient.common.Utils
-import ns.fajnet.android.puftocatorclient.common.preferences.TriggerRadiusPreference
+import ns.fajnet.android.puftocatorclient.common.preferences.*
 import ns.fajnet.android.puftocatorclient.models.LocationInfo
 
 class GeoService : Service() {
 
     // members ---------------------------------------------------------------------------------------------------------
-
-    // TODO: move location parameters to settings
-    private val locationRequestInterval: Long = 100//60000           // 60 sec
-    private val locationRequestFastestInterval: Long = 50//10000    // 10 sec
-    private val locationRequestMaxWaitTime: Long = 1000//120000       // 120 sec
-    private val locationRequestSmallestDisplacement = 50f      // 50 meters
 
     private val _liveTargetLocation = MutableLiveData<LocationInfo?>()
 
@@ -45,6 +39,7 @@ class GeoService : Service() {
 
     private var database: FirebaseDatabase = FirebaseDatabase.getInstance()
     private var dbReference: DatabaseReference = database.getReference(Constants.FIREBASE_REFERENCE)
+    private var isActiveTracking = true
 
     private lateinit var serviceScope: CoroutineScope
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
@@ -53,6 +48,14 @@ class GeoService : Service() {
     private lateinit var hostLocation: Location
     private lateinit var targetLocation: Location
     private lateinit var triggerRadiusPreference: TriggerRadiusPreference
+    private lateinit var activeRequestIntervalPreference: ActiveRequestIntervalPreference
+    private lateinit var activeRequestFastestIntervalPreference: ActiveRequestFastestIntervalPreference
+    private lateinit var activeMaxWaitPreference: ActiveMaxWaitPreference
+    private lateinit var activeSmallestDisplacementPreference: ActiveSmallestDisplacementPreference
+    private lateinit var passiveRequestIntervalPreference: PassiveRequestIntervalPreference
+    private lateinit var passiveRequestFastestIntervalPreference: PassiveRequestFastestIntervalPreference
+    private lateinit var passiveMaxWaitPreference: PassiveMaxWaitPreference
+    private lateinit var passiveSmallestDisplacementPreference: PassiveSmallestDisplacementPreference
 
     // overrides -------------------------------------------------------------------------------------------------------
 
@@ -69,8 +72,7 @@ class GeoService : Service() {
             startForeground(Constants.NOTIFICATION_SERVICE_ID_GEO_SERVICE, generateNotification())
 
             if (checkPrerequisites()) {
-                subscribeToLocationUpdates()
-                subscribeToFirebaseUpdates()
+                subscribe()
             } else {
                 stopSelf()
             }
@@ -86,9 +88,16 @@ class GeoService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         LogEx.d(Constants.TAG_GEO_SERVICE, "onDestroy")
-        unsubscribeFromFirebaseUpdates()
-        unsubscribeFromLocationUpdates()
+        unsubscribe()
         triggerRadiusPreference.dispose()
+        activeRequestIntervalPreference.dispose()
+        activeRequestFastestIntervalPreference.dispose()
+        activeMaxWaitPreference.dispose()
+        activeSmallestDisplacementPreference.dispose()
+        passiveRequestIntervalPreference.dispose()
+        passiveRequestFastestIntervalPreference.dispose()
+        passiveMaxWaitPreference.dispose()
+        passiveSmallestDisplacementPreference.dispose()
         serviceScope.cancel()
     }
 
@@ -112,7 +121,7 @@ class GeoService : Service() {
                         LogEx.d(Constants.TAG_GEO_SERVICE, "location received: $location")
                         hostLocation = location
                         calculateThreat()
-                        LogEx.d(Constants.TAG_GEO_SERVICE, "track update published")
+                        LogEx.d(Constants.TAG_GEO_SERVICE, "location update published")
                     }
                 }
             }
@@ -144,6 +153,14 @@ class GeoService : Service() {
         }
 
         triggerRadiusPreference = TriggerRadiusPreference(applicationContext)
+        activeRequestIntervalPreference = ActiveRequestIntervalPreference(applicationContext)
+        activeRequestFastestIntervalPreference = ActiveRequestFastestIntervalPreference(applicationContext)
+        activeMaxWaitPreference = ActiveMaxWaitPreference(applicationContext)
+        activeSmallestDisplacementPreference = ActiveSmallestDisplacementPreference(applicationContext)
+        passiveRequestIntervalPreference = PassiveRequestIntervalPreference(applicationContext)
+        passiveRequestFastestIntervalPreference = PassiveRequestFastestIntervalPreference(applicationContext)
+        passiveMaxWaitPreference = PassiveMaxWaitPreference(applicationContext)
+        passiveSmallestDisplacementPreference = PassiveSmallestDisplacementPreference(applicationContext)
     }
 
     private fun checkPrerequisites(): Boolean {
@@ -229,6 +246,34 @@ class GeoService : Service() {
         return false
     }
 
+    private fun subscribe() {
+        activeRequestIntervalPreference.subscribe { resubscribeToLocationUpdatesIfNeeded(true) }
+        activeRequestFastestIntervalPreference.subscribe { resubscribeToLocationUpdatesIfNeeded(true) }
+        activeMaxWaitPreference.subscribe { resubscribeToLocationUpdatesIfNeeded(true) }
+        activeSmallestDisplacementPreference.subscribe { resubscribeToLocationUpdatesIfNeeded(true) }
+        passiveRequestIntervalPreference.subscribe { resubscribeToLocationUpdatesIfNeeded(false) }
+        passiveRequestFastestIntervalPreference.subscribe { resubscribeToLocationUpdatesIfNeeded(false) }
+        passiveMaxWaitPreference.subscribe { resubscribeToLocationUpdatesIfNeeded(false) }
+        passiveSmallestDisplacementPreference.subscribe { resubscribeToLocationUpdatesIfNeeded(false) }
+
+        subscribeToLocationUpdates()
+        subscribeToFirebaseUpdates()
+    }
+
+    private fun unsubscribe() {
+        unsubscribeFromLocationUpdates()
+        unsubscribeFromFirebaseUpdates()
+
+        activeRequestIntervalPreference.unsubscribe { resubscribeToLocationUpdatesIfNeeded(true) }
+        activeRequestFastestIntervalPreference.unsubscribe { resubscribeToLocationUpdatesIfNeeded(true) }
+        activeMaxWaitPreference.unsubscribe { resubscribeToLocationUpdatesIfNeeded(true) }
+        activeSmallestDisplacementPreference.unsubscribe { resubscribeToLocationUpdatesIfNeeded(true) }
+        passiveRequestIntervalPreference.unsubscribe { resubscribeToLocationUpdatesIfNeeded(false) }
+        passiveRequestFastestIntervalPreference.unsubscribe { resubscribeToLocationUpdatesIfNeeded(false) }
+        passiveMaxWaitPreference.unsubscribe { resubscribeToLocationUpdatesIfNeeded(false) }
+        passiveSmallestDisplacementPreference.unsubscribe { resubscribeToLocationUpdatesIfNeeded(false) }
+    }
+
     private fun subscribeToFirebaseUpdates() {
         dbReference.addValueEventListener(firebaseListener)
     }
@@ -239,7 +284,7 @@ class GeoService : Service() {
 
     @SuppressLint("MissingPermission")
     private fun subscribeToLocationUpdates() {
-        LogEx.d(Constants.TAG_GEO_SERVICE, "subscribe to location updates")
+        LogEx.d(Constants.TAG_GEO_SERVICE, "subscribe to location updates (isActiveTracking = $isActiveTracking)")
 
         serviceScope.launch {
             withContext(Dispatchers.Main) {
@@ -263,16 +308,51 @@ class GeoService : Service() {
         }
     }
 
+    private fun resubscribeToLocationUpdatesIfNeeded(activePreferenceChanged: Boolean) {
+        if (activePreferenceChanged != isActiveTracking) {
+            LogEx.d(
+                Constants.TAG_GEO_SERVICE,
+                "activePreferenceChanged=$activePreferenceChanged, isActiveTracking=$isActiveTracking -> no need to resubscribe, skipping.."
+            )
+
+            return
+        }
+
+        unsubscribeFromLocationUpdates()
+        subscribeToLocationUpdates()
+    }
+
     private fun generateLocationRequest(): LocationRequest {
-        //val params = retrieveLocationSubscriptionParametersFromPreferences()
+        val params = retrieveLocationSubscriptionParametersFromPreferences()
 
         return LocationRequest.create().apply {
-            interval = locationRequestInterval
-            fastestInterval = locationRequestFastestInterval
-            maxWaitTime = locationRequestMaxWaitTime
-            smallestDisplacement = locationRequestSmallestDisplacement
+            interval = params.interval
+            fastestInterval = params.fastestInterval
+            maxWaitTime = params.maxWait
+            smallestDisplacement = params.smallestDisplacement
             priority = LocationRequest.PRIORITY_HIGH_ACCURACY
         }
+    }
+
+    private fun retrieveLocationSubscriptionParametersFromPreferences(): LocationSubscriptionParameters {
+        var locationRequestInterval = passiveRequestIntervalPreference.value()
+        var locationFastestRequestInterval = passiveRequestFastestIntervalPreference.value()
+        var maxWaitTime = passiveMaxWaitPreference.value()
+        var smallestDisplacement = passiveSmallestDisplacementPreference.value()
+
+        if (isActiveTracking) {
+            locationRequestInterval = activeRequestIntervalPreference.value()
+            locationFastestRequestInterval = activeRequestFastestIntervalPreference.value()
+            maxWaitTime = activeMaxWaitPreference.value()
+            smallestDisplacement = activeSmallestDisplacementPreference.value()
+        }
+
+        return LocationSubscriptionParameters(
+            locationRequestInterval * 1000,
+            locationFastestRequestInterval * 1000,
+            maxWaitTime * 1000,
+            smallestDisplacement
+        )
     }
 
     private fun calculateThreat() {
@@ -284,18 +364,25 @@ class GeoService : Service() {
         val distance = hostLocation.distanceTo(targetLocation)
 
         if (distance < triggerRadiusPreference.value()) {
+            if (!isActiveTracking) {
+                isActiveTracking = true
+                resubscribeToLocationUpdatesIfNeeded(isActiveTracking)
+            }
             // TODO: publish notification
             NotificationManagerCompat.from(this)
                 .notify(Constants.NOTIFICATION_SERVICE_ID_GEO_SERVICE, generateNotification(distance.toString()))
             _liveTargetLocation.postValue(LocationInfo.fromLocation(targetLocation))
         } else {
-            // TODO: publish silent notification
-            NotificationManagerCompat.from(this)
-                .notify(Constants.NOTIFICATION_SERVICE_ID_GEO_SERVICE, generateSilentNotification())
-            _liveTargetLocation.postValue(null)
+            if (isActiveTracking) {
+                isActiveTracking = false
+                resubscribeToLocationUpdatesIfNeeded(isActiveTracking)
+                // TODO: publish silent notification
+                NotificationManagerCompat.from(this)
+                    .notify(Constants.NOTIFICATION_SERVICE_ID_GEO_SERVICE, generateSilentNotification())
+                _liveTargetLocation.postValue(null)
+            }
         }
     }
-
 
     // inner classes ---------------------------------------------------------------------------------------------------
 
@@ -303,4 +390,13 @@ class GeoService : Service() {
         val service: GeoService
             get() = this@GeoService
     }
+
+    // #################################################################################################################
+
+    private class LocationSubscriptionParameters(
+        val interval: Long,
+        val fastestInterval: Long,
+        val maxWait: Long,
+        val smallestDisplacement: Float
+    )
 }

@@ -13,11 +13,34 @@
 
     <string name="settings_activity_title">Settings</string>
     <string name="settings_preference_category_location_title">Location</string>
-    <string name="settings_preference_location_request_interval_key">locationRequestInterval</string>
-    <string name="settings_preference_location_request_interval_title">Request interval</string>
+    <string name="settings_preference_location_active_title">Active parameters</string>
+    <string name="settings_preference_location_passive_title">Passive parameters</string>
+    <string name="settings_preference_location_active_request_interval_key">activeRequestInterval</string>
+    <string name="settings_preference_location_active_request_interval_title">Active request interval (s)</string>
+    <string name="settings_preference_location_active_request_interval_summary">Location refresh rate when in active mode</string>
+    <string name="settings_preference_location_active_request_fastest_interval_key">activeRequestFastestInterval</string>
+    <string name="settings_preference_location_active_request_fastest_interval_title">Active request fastest interval (s)</string>
+    <string name="settings_preference_location_active_request_fastest_interval_summary">Location fastest refresh rate when in active mode</string>
+    <string name="settings_preference_location_active_max_wait_time_key">activeMaxWaitTime</string>
+    <string name="settings_preference_location_active_max_wait_time_title">Active max wait time (s)</string>
+    <string name="settings_preference_location_active_max_wait_time_summary">Longest time to wait for location signal when in active mode</string>
+    <string name="settings_preference_location_active_smallest_displacement_key">activeSmallestDisplacement</string>
+    <string name="settings_preference_location_active_smallest_displacement_title">Active smallest displacement (m)</string>
+    <string name="settings_preference_location_active_smallest_displacement_summary">Smallest displacement to register location change when in active mode</string>
+    <string name="settings_preference_location_passive_request_interval_key">passiveRequestInterval</string>
+    <string name="settings_preference_location_passive_request_interval_title">Passive request interval (s)</string>
+    <string name="settings_preference_location_passive_request_interval_summary">Location refresh rate when in passive mode</string>
+    <string name="settings_preference_location_passive_request_fastest_interval_key">passiveRequestFastestInterval</string>
+    <string name="settings_preference_location_passive_request_fastest_interval_title">Passive request fastest interval (s)</string>
+    <string name="settings_preference_location_passive_request_fastest_interval_summary">Location fastest refresh rate when in passive mode</string>
+    <string name="settings_preference_location_passive_max_wait_time_key">passiveMaxWaitTime</string>
+    <string name="settings_preference_location_passive_max_wait_time_title">Passive max wait time (s)</string>
+    <string name="settings_preference_location_passive_max_wait_time_summary">Longest time to wait for location signal when in passive mode</string>
+    <string name="settings_preference_location_passive_smallest_displacement_key">passiveSmallestDisplacement</string>
+    <string name="settings_preference_location_passive_smallest_displacement_title">Passive smallest displacement (m)</string>
+    <string name="settings_preference_location_passive_smallest_displacement_summary">Smallest displacement to register location change when in passive mode</string>
 
     <string name="settings_preference_category_tracker_title">Tracker</string>
     <string name="settings_preference_radius_key">locationRadius</string>
     <string name="settings_preference_radius_title">Trigger radius</string>
-
 </resources>

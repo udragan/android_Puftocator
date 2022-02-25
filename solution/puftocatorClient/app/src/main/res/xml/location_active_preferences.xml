@@ -1,0 +1,38 @@
+<PreferenceScreen  xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <SeekBarPreference
+        app:key="@string/settings_preference_location_active_request_interval_key"
+        app:title="@string/settings_preference_location_active_request_interval_title"
+        app:showSeekBarValue="true"
+        app:min="1"
+        android:max="10"
+        android:defaultValue="2"
+        android:summary="@string/settings_preference_location_active_request_interval_summary" />
+
+    <SeekBarPreference
+        app:key="@string/settings_preference_location_active_request_fastest_interval_key"
+        app:title="@string/settings_preference_location_active_request_fastest_interval_title"
+        app:showSeekBarValue="true"
+        app:min="1"
+        android:max="10"
+        android:defaultValue="1"
+        android:summary="@string/settings_preference_location_active_request_fastest_interval_summary" />
+
+    <SeekBarPreference
+        app:key="@string/settings_preference_location_active_max_wait_time_key"
+        app:title="@string/settings_preference_location_active_max_wait_time_title"
+        app:showSeekBarValue="true"
+        app:min="10"
+        android:max="300"
+        android:defaultValue="120"
+        android:summary="@string/settings_preference_location_active_max_wait_time_summary" />
+
+    <SeekBarPreference
+        app:key="@string/settings_preference_location_active_smallest_displacement_key"
+        app:title="@string/settings_preference_location_active_smallest_displacement_title"
+        app:showSeekBarValue="true"
+        android:max="100"
+        android:defaultValue="50"
+        android:summary="@string/settings_preference_location_active_smallest_displacement_summary" />
+</PreferenceScreen>
