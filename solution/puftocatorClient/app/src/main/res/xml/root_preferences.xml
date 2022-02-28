@@ -24,4 +24,14 @@
             app:title="@string/settings_preference_radius_title"
             app:useSimpleSummaryProvider="true" />
     </PreferenceCategory>
+
+    <ns.fajnet.android.puftocatorclient.common.preferences.ResetToDefaultDialogPreference
+        android:dialogMessage="@string/settings_preference_reset_to_default_message"
+        android:key="@string/settings_preference_reset_to_default_key"
+        android:negativeButtonText="@string/settings_preference_reset_to_default_negative_button_text"
+        android:persistent="false"
+        android:positiveButtonText="@string/settings_preference_reset_to_default_positive_button_text"
+        android:summary="@string/settings_preference_reset_to_default_summary"
+        android:title="@string/settings_preference_reset_to_default_title"
+        app:allowDividerAbove="true" />
 </PreferenceScreen>

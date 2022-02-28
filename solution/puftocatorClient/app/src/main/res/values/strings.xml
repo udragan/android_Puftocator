@@ -39,6 +39,12 @@
     <string name="settings_preference_location_passive_smallest_displacement_key">passiveSmallestDisplacement</string>
     <string name="settings_preference_location_passive_smallest_displacement_title">Passive smallest displacement (m)</string>
     <string name="settings_preference_location_passive_smallest_displacement_summary">Smallest displacement to register location change when in passive mode</string>
+    <string name="settings_preference_reset_to_default_key">resetToDefault</string>
+    <string name="settings_preference_reset_to_default_title">Reset to default</string>
+    <string name="settings_preference_reset_to_default_message">Revert all values to their defaults?</string>
+    <string name="settings_preference_reset_to_default_summary">Reset all settings to their initial values.</string>
+    <string name="settings_preference_reset_to_default_positive_button_text">Yes, RESET all values</string>
+    <string name="settings_preference_reset_to_default_negative_button_text">No, KEEP current values</string>
 
     <string name="settings_preference_category_tracker_title">Tracker</string>
     <string name="settings_preference_radius_key">locationRadius</string>

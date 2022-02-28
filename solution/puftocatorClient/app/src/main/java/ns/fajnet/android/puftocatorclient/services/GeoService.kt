@@ -318,6 +318,9 @@ class GeoService : Service() {
             return
         }
 
+        // TODO: queue resubscribe instead of executing immediately because when preferences are reset to default resubscribe is being triggered for each preference!!
+        LogEx.d(Constants.TAG_GEO_SERVICE, "queueing resubscribe..")
+
         unsubscribeFromLocationUpdates()
         subscribeToLocationUpdates()
     }
