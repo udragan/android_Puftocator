@@ -5,25 +5,28 @@ import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Intent
 import android.content.ServiceConnection
+import android.location.Location
 import android.os.Bundle
 import android.os.IBinder
+import android.os.Looper
 import android.view.Menu
 import android.view.MenuItem
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
+import com.google.maps.android.SphericalUtil
 import ns.fajnet.android.puftocatorclient.R
 import ns.fajnet.android.puftocatorclient.activities.settings.SettingsActivity
 import ns.fajnet.android.puftocatorclient.common.Constants
 import ns.fajnet.android.puftocatorclient.common.LogEx
 import ns.fajnet.android.puftocatorclient.common.Utils
+import ns.fajnet.android.puftocatorclient.common.preferences.*
 import ns.fajnet.android.puftocatorclient.databinding.ActivityMainBinding
 import ns.fajnet.android.puftocatorclient.models.LocationInfo
 import ns.fajnet.android.puftocatorclient.services.GeoService
@@ -39,10 +42,17 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
             handlePermissionGrants(permissions)
         }
+    private var hostRadius: Circle? = null
     private var targetMarker: Marker? = null
     private var targetAccuracy: Circle? = null
     private lateinit var map: GoogleMap
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var locationCallback: LocationCallback
+    private lateinit var activeRequestIntervalPreference: ActiveRequestIntervalPreference
+    private lateinit var activeRequestFastestIntervalPreference: ActiveRequestFastestIntervalPreference
+    private lateinit var activeMaxWaitPreference: ActiveMaxWaitPreference
+    private lateinit var triggerRadiusPreference: TriggerRadiusPreference
+    private lateinit var drawRadiusPreference: DrawRadiusPreference
 
     // overrides -------------------------------------------------------------------------------------------------------
 
@@ -51,8 +61,33 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
+
+        initialize()
+    }
+
+    private fun initialize() {
         (supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment).getMapAsync(this)
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                LogEx.d(Constants.TAG_MAIN_ACTIVITY, "locationCallbackTriggered")
+                super.onLocationResult(locationResult)
+
+                // TODO: move all processing to background thread!
+                //serviceScope.launch {
+                for (location in locationResult.locations) {
+                    LogEx.d(Constants.TAG_MAIN_ACTIVITY, "location received: $location")
+                    drawRadius(location)
+                    LogEx.d(Constants.TAG_MAIN_ACTIVITY, "location update published")
+                }
+                //}
+            }
+        }
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(applicationContext)
+        activeRequestIntervalPreference = ActiveRequestIntervalPreference(applicationContext)
+        activeRequestFastestIntervalPreference = ActiveRequestFastestIntervalPreference(applicationContext)
+        activeMaxWaitPreference = ActiveMaxWaitPreference(applicationContext)
+        triggerRadiusPreference = TriggerRadiusPreference(applicationContext)
+        drawRadiusPreference = DrawRadiusPreference(applicationContext)
     }
 
     override fun onPostCreate(savedInstanceState: Bundle?) {
@@ -70,6 +105,15 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
     override fun onPause() {
         super.onPause()
         unbindService(this)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        triggerRadiusPreference.dispose()
+        drawRadiusPreference.dispose()
+        activeRequestIntervalPreference.dispose()
+        activeRequestFastestIntervalPreference.dispose()
+        activeMaxWaitPreference.dispose()
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -115,12 +159,12 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
 
     override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
         val binder = service as GeoService.MyBinder
-        LogEx.d(Constants.TAG_MAPS_ACTIVITY, "connected to service")
+        LogEx.d(Constants.TAG_MAIN_ACTIVITY, "connected to service")
         viewModel.setGeoService(binder.service)
     }
 
     override fun onServiceDisconnected(name: ComponentName?) {
-        LogEx.d(Constants.TAG_MAPS_ACTIVITY, "disconnected from service")
+        LogEx.d(Constants.TAG_MAIN_ACTIVITY, "disconnected from service")
     }
 
     // private methods -------------------------------------------------------------------------------------------------
@@ -173,6 +217,38 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
         targetMarker?.isVisible = false
     }
 
+    // TODO: redraw on preference change (both radius and draw)
+    private fun drawRadius(location: Location) {
+        if (drawRadiusPreference.value()) {
+            val latLon = LatLng(location.latitude, location.longitude)
+
+            if (hostRadius == null) {
+                hostRadius = map.addCircle(
+                    CircleOptions()
+                        .center(latLon)
+                        .strokeWidth(5f)
+                        .strokeColor(getColor(R.color.marker_radius_stroke))
+                        .fillColor(getColor(R.color.marker_radius_fill))
+                )
+            }
+
+            hostRadius?.center = latLon
+            hostRadius?.radius = triggerRadiusPreference.value().toDouble()
+            hostRadius?.isVisible = true
+
+            // TODO: change zoom and track only if manual changes are made after clicking myLocation button
+            val ne = SphericalUtil.computeOffset(latLon, triggerRadiusPreference.value().toDouble(), 90.0)
+            val sw = SphericalUtil.computeOffset(latLon, triggerRadiusPreference.value().toDouble(), 270.0)
+
+            val llb = LatLngBounds(sw, ne)
+            map.animateCamera(CameraUpdateFactory.newLatLngBounds(llb, 10))
+        }
+    }
+
+    private fun clearRadius() {
+        hostRadius?.isVisible = false
+    }
+
     @SuppressLint("MissingPermission")
     private fun enableMyLocation() {
         map.isMyLocationEnabled = true
@@ -181,6 +257,22 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
             if (it != null) {
                 map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(it.latitude, it.longitude), 16f))
             }
+        }
+        Looper.myLooper()?.let {
+            fusedLocationClient.requestLocationUpdates(
+                generateLocationRequest(),
+                locationCallback,
+                it
+            )
+        }
+    }
+
+    private fun generateLocationRequest(): LocationRequest {
+        return LocationRequest.create().apply {
+            interval = activeRequestIntervalPreference.value() * 1000
+            fastestInterval = activeRequestFastestIntervalPreference.value() * 1000
+            maxWaitTime = activeMaxWaitPreference.value() * 1000
+            priority = LocationRequest.PRIORITY_HIGH_ACCURACY
         }
     }
 
@@ -196,7 +288,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
             }
 
         requestPermissions.launch(permissionsToRequest)
-        LogEx.i(Constants.TAG_MAPS_ACTIVITY, "Location permission requested.")
+        LogEx.i(Constants.TAG_MAIN_ACTIVITY, "Location permission requested.")
     }
 
     private fun handlePermissionGrants(permissions: Map<String, Boolean>) {
@@ -205,9 +297,9 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
                 Manifest.permission.ACCESS_FINE_LOCATION -> {
                     if (actionMap.value) {
                         enableMyLocation()
-                        LogEx.i(Constants.TAG_MAPS_ACTIVITY, "Location permission granted.")
+                        LogEx.i(Constants.TAG_MAIN_ACTIVITY, "Location permission granted.")
                     } else {
-                        LogEx.i(Constants.TAG_MAPS_ACTIVITY, "Location permission denied.")
+                        LogEx.i(Constants.TAG_MAIN_ACTIVITY, "Location permission denied.")
                         finishAffinity()
                     }
                 }

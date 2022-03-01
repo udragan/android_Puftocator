@@ -139,7 +139,7 @@ class GeoService : Service() {
                             LogEx.d(Constants.TAG_GEO_SERVICE, "firebase location received: $locationInfo")
                             targetLocation = locationInfo.toLocation()
                         } else {
-                            LogEx.e(Constants.TAG_MAPS_ACTIVITY, "firebase location cannot be found")
+                            LogEx.e(Constants.TAG_GEO_SERVICE, "firebase location cannot be found")
                         }
 
                         calculateThreat()

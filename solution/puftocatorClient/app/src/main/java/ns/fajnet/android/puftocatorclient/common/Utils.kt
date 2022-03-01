@@ -15,7 +15,7 @@ object Utils {
         )
 
         val result = permissionStatus == PackageManager.PERMISSION_GRANTED
-        LogEx.i(Constants.TAG_MAPS_ACTIVITY, "Location permission granted: $result")
+        LogEx.i(Constants.TAG_UTILS, "Location permission granted: $result")
 
         return result
     }
@@ -26,7 +26,7 @@ object Utils {
 
         val result = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
                 locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-        LogEx.i(Constants.TAG_MAPS_ACTIVITY, "Location enabled: $result")
+        LogEx.i(Constants.TAG_UTILS, "Location enabled: $result")
 
         return result
     }

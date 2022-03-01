@@ -34,21 +34,21 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
         super.onCleared()
 
         geoService.liveTargetLocation.removeObserver(targetObserver)
-        LogEx.d(Constants.TAG_MAPS_ACTIVITY_VIEW_MODEL, "clearing observer")
+        LogEx.d(Constants.TAG_MAIN_ACTIVITY_VIEW_MODEL, "clearing observer")
     }
 
     // public methods --------------------------------------------------------------------------------------------------
 
     fun startService() {
-        LogEx.d(Constants.TAG_MAPS_ACTIVITY_VIEW_MODEL, "start service")
+        LogEx.d(Constants.TAG_MAIN_ACTIVITY_VIEW_MODEL, "start service")
         val intent = Intent(context, GeoService::class.java)
         ContextCompat.startForegroundService(context, intent)
     }
 
     fun setGeoService(service: GeoService) {
-        LogEx.d(Constants.TAG_MAPS_ACTIVITY_VIEW_MODEL, "set geo service and observer")
+        LogEx.d(Constants.TAG_MAIN_ACTIVITY_VIEW_MODEL, "set geo service and observer")
         if (this::geoService.isInitialized) {
-            LogEx.d(Constants.TAG_MAPS_ACTIVITY_VIEW_MODEL, "geo service already set, skipping..")
+            LogEx.d(Constants.TAG_MAIN_ACTIVITY_VIEW_MODEL, "geo service already set, skipping..")
             return
         }
 

@@ -23,6 +23,11 @@
             app:key="@string/settings_preference_radius_key"
             app:title="@string/settings_preference_radius_title"
             app:useSimpleSummaryProvider="true" />
+
+        <SwitchPreferenceCompat
+            android:key="@string/settings_preference_draw_radius_key"
+            android:defaultValue="false"
+            app:title="@string/settings_preference_draw_radius_title" />
     </PreferenceCategory>
 
     <ns.fajnet.android.puftocatorclient.common.preferences.ResetToDefaultDialogPreference

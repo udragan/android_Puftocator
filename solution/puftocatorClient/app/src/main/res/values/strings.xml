@@ -49,4 +49,6 @@
     <string name="settings_preference_category_tracker_title">Tracker</string>
     <string name="settings_preference_radius_key">locationRadius</string>
     <string name="settings_preference_radius_title">Trigger radius</string>
+    <string name="settings_preference_draw_radius_key">drawRadius</string>
+    <string name="settings_preference_draw_radius_title">Draw radius on map</string>
 </resources>
