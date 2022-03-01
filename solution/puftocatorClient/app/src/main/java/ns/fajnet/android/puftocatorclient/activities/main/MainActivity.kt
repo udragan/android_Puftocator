@@ -31,7 +31,9 @@ import ns.fajnet.android.puftocatorclient.databinding.ActivityMainBinding
 import ns.fajnet.android.puftocatorclient.models.LocationInfo
 import ns.fajnet.android.puftocatorclient.services.GeoService
 
-class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback {
+class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
+    GoogleMap.OnMyLocationButtonClickListener,
+    GoogleMap.OnMapClickListener {
 
     // members ---------------------------------------------------------------------------------------------------------
 
@@ -45,6 +47,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
     private var hostRadius: Circle? = null
     private var targetMarker: Marker? = null
     private var targetAccuracy: Circle? = null
+    private var followMyLocation: Boolean = false
     private lateinit var map: GoogleMap
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
@@ -63,31 +66,6 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
         setContentView(view)
 
         initialize()
-    }
-
-    private fun initialize() {
-        (supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment).getMapAsync(this)
-        locationCallback = object : LocationCallback() {
-            override fun onLocationResult(locationResult: LocationResult) {
-                LogEx.d(Constants.TAG_MAIN_ACTIVITY, "locationCallbackTriggered")
-                super.onLocationResult(locationResult)
-
-                // TODO: move all processing to background thread!
-                //serviceScope.launch {
-                for (location in locationResult.locations) {
-                    LogEx.d(Constants.TAG_MAIN_ACTIVITY, "location received: $location")
-                    drawRadius(location)
-                    LogEx.d(Constants.TAG_MAIN_ACTIVITY, "location update published")
-                }
-                //}
-            }
-        }
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(applicationContext)
-        activeRequestIntervalPreference = ActiveRequestIntervalPreference(applicationContext)
-        activeRequestFastestIntervalPreference = ActiveRequestFastestIntervalPreference(applicationContext)
-        activeMaxWaitPreference = ActiveMaxWaitPreference(applicationContext)
-        triggerRadiusPreference = TriggerRadiusPreference(applicationContext)
-        drawRadiusPreference = DrawRadiusPreference(applicationContext)
     }
 
     override fun onPostCreate(savedInstanceState: Bundle?) {
@@ -140,6 +118,8 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
 
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
+        map.setOnMyLocationButtonClickListener(this)
+        map.setOnMapClickListener(this)
         bindLiveData()
 
         when {
@@ -155,6 +135,16 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
         }
     }
 
+    override fun onMyLocationButtonClick(): Boolean {
+        followMyLocation = true
+        zoomToMyLocationRadius()
+        return true
+    }
+
+    override fun onMapClick(point: LatLng) {
+        followMyLocation = false
+    }
+
     // ServiceConnection -----------------------------------------------------------------------------------------------
 
     override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -168,6 +158,31 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
     }
 
     // private methods -------------------------------------------------------------------------------------------------
+
+    private fun initialize() {
+        (supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment).getMapAsync(this)
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                LogEx.d(Constants.TAG_MAIN_ACTIVITY, "locationCallbackTriggered")
+                super.onLocationResult(locationResult)
+
+                // TODO: move all processing to background thread!
+                //serviceScope.launch {
+                for (location in locationResult.locations) {
+                    LogEx.d(Constants.TAG_MAIN_ACTIVITY, "location received: $location")
+                    drawRadius(location)
+                    LogEx.d(Constants.TAG_MAIN_ACTIVITY, "location update published")
+                }
+                //}
+            }
+        }
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(applicationContext)
+        activeRequestIntervalPreference = ActiveRequestIntervalPreference(applicationContext)
+        activeRequestFastestIntervalPreference = ActiveRequestFastestIntervalPreference(applicationContext)
+        activeMaxWaitPreference = ActiveMaxWaitPreference(applicationContext)
+        triggerRadiusPreference = TriggerRadiusPreference(applicationContext)
+        drawRadiusPreference = DrawRadiusPreference(applicationContext)
+    }
 
     private fun bindLiveData() {
         viewModel.liveTargetLocation.observe(this) {
@@ -236,12 +251,9 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
             hostRadius?.radius = triggerRadiusPreference.value().toDouble()
             hostRadius?.isVisible = true
 
-            // TODO: change zoom and track only if manual changes are made after clicking myLocation button
-            val ne = SphericalUtil.computeOffset(latLon, triggerRadiusPreference.value().toDouble(), 90.0)
-            val sw = SphericalUtil.computeOffset(latLon, triggerRadiusPreference.value().toDouble(), 270.0)
-
-            val llb = LatLngBounds(sw, ne)
-            map.animateCamera(CameraUpdateFactory.newLatLngBounds(llb, 10))
+            if (followMyLocation) {
+                zoomToMyLocationRadius()
+            }
         }
     }
 
@@ -249,10 +261,17 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback 
         hostRadius?.isVisible = false
     }
 
+    private fun zoomToMyLocationRadius() {
+        val ne = SphericalUtil.computeOffset(hostRadius?.center, triggerRadiusPreference.value().toDouble(), 90.0)
+        val sw = SphericalUtil.computeOffset(hostRadius?.center, triggerRadiusPreference.value().toDouble(), 270.0)
+
+        val bounds = LatLngBounds(sw, ne)
+        map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 10))
+    }
+
     @SuppressLint("MissingPermission")
     private fun enableMyLocation() {
         map.isMyLocationEnabled = true
-        map.uiSettings.isMyLocationButtonEnabled = true
         fusedLocationClient.lastLocation.addOnSuccessListener {
             if (it != null) {
                 map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(it.latitude, it.longitude), 16f))
