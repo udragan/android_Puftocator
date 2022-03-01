@@ -44,18 +44,18 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
             handlePermissionGrants(permissions)
         }
-    private var hostRadius: Circle? = null
+    private var myLocationRadius: Circle? = null
     private var targetMarker: Marker? = null
-    private var targetAccuracy: Circle? = null
+    private var targetMarkerAccuracyRadius: Circle? = null
     private var followMyLocation: Boolean = false
     private lateinit var map: GoogleMap
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
-    private lateinit var activeRequestIntervalPreference: ActiveRequestIntervalPreference
-    private lateinit var activeRequestFastestIntervalPreference: ActiveRequestFastestIntervalPreference
-    private lateinit var activeMaxWaitPreference: ActiveMaxWaitPreference
-    private lateinit var triggerRadiusPreference: TriggerRadiusPreference
-    private lateinit var drawRadiusPreference: DrawRadiusPreference
+    private lateinit var activeRequestIntervalPref: ActiveRequestIntervalPreference
+    private lateinit var activeRequestFastestIntervalPref: ActiveRequestFastestIntervalPreference
+    private lateinit var activeMaxWaitPref: ActiveMaxWaitPreference
+    private lateinit var triggerRadiusPref: TriggerRadiusPreference
+    private lateinit var drawRadiusPref: DrawRadiusPreference
 
     // overrides -------------------------------------------------------------------------------------------------------
 
@@ -87,11 +87,11 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
 
     override fun onDestroy() {
         super.onDestroy()
-        triggerRadiusPreference.dispose()
-        drawRadiusPreference.dispose()
-        activeRequestIntervalPreference.dispose()
-        activeRequestFastestIntervalPreference.dispose()
-        activeMaxWaitPreference.dispose()
+        triggerRadiusPref.dispose()
+        drawRadiusPref.dispose()
+        activeRequestIntervalPref.dispose()
+        activeRequestFastestIntervalPref.dispose()
+        activeMaxWaitPref.dispose()
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -120,6 +120,9 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
         map = googleMap
         map.setOnMyLocationButtonClickListener(this)
         map.setOnMapClickListener(this)
+
+        initializeMarkers()
+
         bindLiveData()
 
         when {
@@ -177,93 +180,80 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
             }
         }
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(applicationContext)
-        activeRequestIntervalPreference = ActiveRequestIntervalPreference(applicationContext)
-        activeRequestFastestIntervalPreference = ActiveRequestFastestIntervalPreference(applicationContext)
-        activeMaxWaitPreference = ActiveMaxWaitPreference(applicationContext)
-        triggerRadiusPreference = TriggerRadiusPreference(applicationContext)
-        drawRadiusPreference = DrawRadiusPreference(applicationContext)
+        activeRequestIntervalPref = ActiveRequestIntervalPreference(applicationContext)
+        activeRequestFastestIntervalPref = ActiveRequestFastestIntervalPreference(applicationContext)
+        activeMaxWaitPref = ActiveMaxWaitPreference(applicationContext)
+        triggerRadiusPref = TriggerRadiusPreference(applicationContext)
+        drawRadiusPref = DrawRadiusPreference(applicationContext)
+    }
+
+    private fun initializeMarkers() {
+        targetMarker = map.addMarker(
+            MarkerOptions()
+                .position(LatLng(0.0, 0.0))
+                .flat(true)
+                .title("Target")
+                .visible(false)
+        )
+        targetMarkerAccuracyRadius = map.addCircle(
+            CircleOptions()
+                .center(LatLng(0.0, 0.0))
+                .strokeWidth(5f)
+                .strokeColor(getColor(R.color.marker_radius_stroke))
+                .fillColor(getColor(R.color.marker_radius_fill))
+                .visible(false)
+        )
+        myLocationRadius = map.addCircle(
+            CircleOptions()
+                .center(LatLng(0.0, 0.0))
+                .strokeWidth(5f)
+                .strokeColor(getColor(R.color.marker_radius_stroke))
+                .fillColor(getColor(R.color.marker_radius_fill))
+        )
     }
 
     private fun bindLiveData() {
         viewModel.liveTargetLocation.observe(this) {
-            if (it != null) {
-                setTargetMarker(it)
-            } else {
-                clearTargetMarker()
-            }
+            drawTargetMarker(it)
         }
     }
 
-    private fun setTargetMarker(locationInfo: LocationInfo) {
-        val latLon = LatLng(locationInfo.latitude, locationInfo.longitude)
+    private fun drawTargetMarker(location: LocationInfo?) {
+        if (location != null) {
+            val latLon = LatLng(location.latitude, location.longitude)
 
-        if (targetMarker == null) {
-            targetMarker = map.addMarker(
-                MarkerOptions()
-                    .position(latLon)
-                    .flat(true)
-                    .title("Target")
-            )
+            targetMarker?.position = latLon
+            targetMarker?.rotation = location.bearing
+            targetMarker?.isVisible = true
+            targetMarkerAccuracyRadius?.center = latLon
+            targetMarkerAccuracyRadius?.radius = location.accuracy.toDouble()
+            targetMarkerAccuracyRadius?.isVisible = true
+        } else {
+            targetMarkerAccuracyRadius?.isVisible = false
+            targetMarker?.isVisible = false
         }
-
-        targetMarker?.position = latLon
-        targetMarker?.rotation = locationInfo.bearing
-        targetMarker?.isVisible = true
-
-        if (targetAccuracy == null) {
-            targetAccuracy = map.addCircle(
-                CircleOptions()
-                    .center(latLon)
-                    .strokeWidth(5f)
-                    .strokeColor(getColor(R.color.marker_radius_stroke))
-                    .fillColor(getColor(R.color.marker_radius_fill))
-            )
-        }
-
-        targetAccuracy?.center = latLon
-        targetAccuracy?.radius = locationInfo.accuracy.toDouble()
-        targetAccuracy?.isVisible = true
-
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(latLon, 16.0f))
-    }
-
-    private fun clearTargetMarker() {
-        targetAccuracy?.isVisible = false
-        targetMarker?.isVisible = false
     }
 
     // TODO: redraw on preference change (both radius and draw)
     private fun drawRadius(location: Location) {
-        if (drawRadiusPreference.value()) {
+        if (drawRadiusPref.value()) {
             val latLon = LatLng(location.latitude, location.longitude)
 
-            if (hostRadius == null) {
-                hostRadius = map.addCircle(
-                    CircleOptions()
-                        .center(latLon)
-                        .strokeWidth(5f)
-                        .strokeColor(getColor(R.color.marker_radius_stroke))
-                        .fillColor(getColor(R.color.marker_radius_fill))
-                )
-            }
-
-            hostRadius?.center = latLon
-            hostRadius?.radius = triggerRadiusPreference.value().toDouble()
-            hostRadius?.isVisible = true
+            myLocationRadius?.center = latLon
+            myLocationRadius?.radius = triggerRadiusPref.value().toDouble()
+            myLocationRadius?.isVisible = true
 
             if (followMyLocation) {
                 zoomToMyLocationRadius()
             }
+        } else {
+            myLocationRadius?.isVisible = false
         }
     }
 
-    private fun clearRadius() {
-        hostRadius?.isVisible = false
-    }
-
     private fun zoomToMyLocationRadius() {
-        val ne = SphericalUtil.computeOffset(hostRadius?.center, triggerRadiusPreference.value().toDouble(), 90.0)
-        val sw = SphericalUtil.computeOffset(hostRadius?.center, triggerRadiusPreference.value().toDouble(), 270.0)
+        val ne = SphericalUtil.computeOffset(myLocationRadius?.center, triggerRadiusPref.value().toDouble(), 90.0)
+        val sw = SphericalUtil.computeOffset(myLocationRadius?.center, triggerRadiusPref.value().toDouble(), 270.0)
 
         val bounds = LatLngBounds(sw, ne)
         map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 10))
@@ -288,9 +278,9 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
 
     private fun generateLocationRequest(): LocationRequest {
         return LocationRequest.create().apply {
-            interval = activeRequestIntervalPreference.value() * 1000
-            fastestInterval = activeRequestFastestIntervalPreference.value() * 1000
-            maxWaitTime = activeMaxWaitPreference.value() * 1000
+            interval = activeRequestIntervalPref.value() * 1000
+            fastestInterval = activeRequestFastestIntervalPref.value() * 1000
+            maxWaitTime = activeMaxWaitPref.value() * 1000
             priority = LocationRequest.PRIORITY_HIGH_ACCURACY
         }
     }
