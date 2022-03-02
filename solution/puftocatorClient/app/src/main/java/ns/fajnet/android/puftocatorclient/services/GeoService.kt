@@ -275,10 +275,12 @@ class GeoService : Service() {
     }
 
     private fun subscribeToFirebaseUpdates() {
+        LogEx.d(Constants.TAG_GEO_SERVICE, "subscribe to firebase updates")
         dbReference.addValueEventListener(firebaseListener)
     }
 
     private fun unsubscribeFromFirebaseUpdates() {
+        LogEx.d(Constants.TAG_GEO_SERVICE, "unsubscribe from firebase updates")
         dbReference.removeEventListener(firebaseListener)
     }
 
@@ -301,7 +303,6 @@ class GeoService : Service() {
     }
 
     private fun unsubscribeFromLocationUpdates() {
-
         if (this::fusedLocationProviderClient.isInitialized) {
             LogEx.d(Constants.TAG_GEO_SERVICE, "unsubscribe from location updates")
             fusedLocationProviderClient.removeLocationUpdates(locationCallback)

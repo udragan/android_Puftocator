@@ -31,9 +31,12 @@ import ns.fajnet.android.puftocatorclient.databinding.ActivityMainBinding
 import ns.fajnet.android.puftocatorclient.models.LocationInfo
 import ns.fajnet.android.puftocatorclient.services.GeoService
 
-class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
+class MainActivity : AppCompatActivity(),
+    ServiceConnection,
+    OnMapReadyCallback,
     GoogleMap.OnMyLocationButtonClickListener,
-    GoogleMap.OnMapClickListener {
+    GoogleMap.OnMapClickListener,
+    GoogleMap.OnCameraMoveStartedListener {
 
     // members ---------------------------------------------------------------------------------------------------------
 
@@ -47,7 +50,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
     private var myLocationRadius: Circle? = null
     private var targetMarker: Marker? = null
     private var targetMarkerAccuracyRadius: Circle? = null
-    private var followMyLocation: Boolean = false
+    private var followMyLocation: Boolean = true
     private lateinit var map: GoogleMap
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
@@ -60,6 +63,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
     // overrides -------------------------------------------------------------------------------------------------------
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        LogEx.d(Constants.TAG_MAIN_ACTIVITY, "onCreate")
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
@@ -70,7 +74,6 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
 
     override fun onPostCreate(savedInstanceState: Bundle?) {
         super.onPostCreate(savedInstanceState)
-
         viewModel.startService()
     }
 
@@ -86,7 +89,9 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
     }
 
     override fun onDestroy() {
+        LogEx.d(Constants.TAG_MAIN_ACTIVITY, "onDestroy")
         super.onDestroy()
+        unsubscribe()
         triggerRadiusPref.dispose()
         drawRadiusPref.dispose()
         activeRequestIntervalPref.dispose()
@@ -117,13 +122,19 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
+        LogEx.d(Constants.TAG_MAIN_ACTIVITY, "onMapReady")
         map = googleMap
-        map.setOnMyLocationButtonClickListener(this)
-        map.setOnMapClickListener(this)
+        with(googleMap) {
+            uiSettings.isZoomControlsEnabled = true
+            setOnMyLocationButtonClickListener(this@MainActivity)
+            setOnMapClickListener(this@MainActivity)
+            setOnCameraMoveStartedListener(this@MainActivity)
+        }
 
         initializeMarkers()
 
         bindLiveData()
+        subscribe()
 
         when {
             Utils.isPermissionGranted(this) -> when {
@@ -140,12 +151,23 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
 
     override fun onMyLocationButtonClick(): Boolean {
         followMyLocation = true
-        zoomToMyLocationRadius()
-        return true
+
+        if (drawRadiusPref.value()) {
+            zoomToMyLocationRadius()
+            return true
+        }
+
+        return false
     }
 
     override fun onMapClick(point: LatLng) {
         followMyLocation = false
+    }
+
+    override fun onCameraMoveStarted(reason: Int) {
+        if (reason == GoogleMap.OnCameraMoveStartedListener.REASON_GESTURE) {
+            followMyLocation = false
+        }
     }
 
     // ServiceConnection -----------------------------------------------------------------------------------------------
@@ -163,6 +185,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
     // private methods -------------------------------------------------------------------------------------------------
 
     private fun initialize() {
+        LogEx.d(Constants.TAG_MAIN_ACTIVITY, "initialize")
         (supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment).getMapAsync(this)
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
@@ -173,7 +196,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
                 //serviceScope.launch {
                 for (location in locationResult.locations) {
                     LogEx.d(Constants.TAG_MAIN_ACTIVITY, "location received: $location")
-                    drawRadius(location)
+                    drawMyLocationRadius(location)
                     LogEx.d(Constants.TAG_MAIN_ACTIVITY, "location update published")
                 }
                 //}
@@ -188,6 +211,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
     }
 
     private fun initializeMarkers() {
+        LogEx.d(Constants.TAG_MAIN_ACTIVITY, "initialize markers")
         targetMarker = map.addMarker(
             MarkerOptions()
                 .position(LatLng(0.0, 0.0))
@@ -218,6 +242,37 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
         }
     }
 
+    @SuppressLint("MissingPermission")
+    private fun subscribe() {
+        LogEx.d(Constants.TAG_MAIN_ACTIVITY, "subscribe to location updates")
+        Looper.myLooper()?.let {
+            fusedLocationClient.requestLocationUpdates(
+                generateLocationRequest(),
+                locationCallback,
+                it
+            )
+        }
+        triggerRadiusPref.subscribe {
+            drawMyLocationRadius(Location("").apply {
+                latitude = myLocationRadius?.center?.latitude!!
+                longitude = myLocationRadius?.center?.longitude!!
+            })
+        }
+        drawRadiusPref.subscribe {
+            drawMyLocationRadius(Location("").apply {
+                latitude = myLocationRadius?.center?.latitude!!
+                longitude = myLocationRadius?.center?.longitude!!
+            })
+        }
+    }
+
+    private fun unsubscribe() {
+        if (this::fusedLocationClient.isInitialized) {
+            LogEx.d(Constants.TAG_MAIN_ACTIVITY, "unsubscribe from location updates")
+            fusedLocationClient.removeLocationUpdates(locationCallback)
+        }
+    }
+
     private fun drawTargetMarker(location: LocationInfo?) {
         if (location != null) {
             val latLon = LatLng(location.latitude, location.longitude)
@@ -234,13 +289,13 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
         }
     }
 
-    // TODO: redraw on preference change (both radius and draw)
-    private fun drawRadius(location: Location) {
-        if (drawRadiusPref.value()) {
-            val latLon = LatLng(location.latitude, location.longitude)
+    private fun drawMyLocationRadius(location: Location) {
+        LogEx.d(Constants.TAG_MAIN_ACTIVITY, "drawMyLocationRadius - DrawRadiusPref = ${drawRadiusPref.value()}")
+        val latLon = LatLng(location.latitude, location.longitude)
+        myLocationRadius?.center = latLon
+        myLocationRadius?.radius = triggerRadiusPref.value().toDouble()
 
-            myLocationRadius?.center = latLon
-            myLocationRadius?.radius = triggerRadiusPref.value().toDouble()
+        if (drawRadiusPref.value()) {
             myLocationRadius?.isVisible = true
 
             if (followMyLocation) {
@@ -267,13 +322,6 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
                 map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(it.latitude, it.longitude), 16f))
             }
         }
-        Looper.myLooper()?.let {
-            fusedLocationClient.requestLocationUpdates(
-                generateLocationRequest(),
-                locationCallback,
-                it
-            )
-        }
     }
 
     private fun generateLocationRequest(): LocationRequest {
@@ -281,6 +329,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection, OnMapReadyCallback,
             interval = activeRequestIntervalPref.value() * 1000
             fastestInterval = activeRequestFastestIntervalPref.value() * 1000
             maxWaitTime = activeMaxWaitPref.value() * 1000
+            smallestDisplacement = 2f
             priority = LocationRequest.PRIORITY_HIGH_ACCURACY
         }
     }

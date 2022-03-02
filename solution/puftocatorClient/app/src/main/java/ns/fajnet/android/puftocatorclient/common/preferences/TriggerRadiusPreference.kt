@@ -13,6 +13,7 @@ class TriggerRadiusPreference(private val context: Context) : IPreference,
     // members ---------------------------------------------------------------------------------------------------------
 
     private var _value = ""
+    private val subscribers = mutableListOf<() -> Unit>()
 
     // init ------------------------------------------------------------------------------------------------------------
 
@@ -29,6 +30,7 @@ class TriggerRadiusPreference(private val context: Context) : IPreference,
 
     override fun dispose() {
         unregisterPreferenceChangeListener()
+        unsubscribeAll()
     }
 
     // OnSharedPreferencesChangedListener ------------------------------------------------------------------------------
@@ -42,7 +44,23 @@ class TriggerRadiusPreference(private val context: Context) : IPreference,
                     context.getString(R.string.settings_preference_radius_key),
                     defaultValue
                 )!!
+
+            LogEx.d(
+                Constants.TAG_PREFERENCE_TRIGGER_RADIUS,
+                "triggering ${subscribers.size} subscribers"
+            )
+            subscribers.forEach { x -> x.invoke() }
         }
+    }
+
+    // public methods --------------------------------------------------------------------------------------------------
+
+    fun subscribe(action: () -> Unit) {
+        subscribers.add(action)
+    }
+
+    fun unsubscribe(action: () -> Unit) {
+        subscribers.remove(action)
     }
 
     // private methods -------------------------------------------------------------------------------------------------
@@ -68,5 +86,9 @@ class TriggerRadiusPreference(private val context: Context) : IPreference,
         LogEx.d(Constants.TAG_PREFERENCE_TRIGGER_RADIUS, "unregister preference change listener")
         PreferenceManager.getDefaultSharedPreferences(context)
             .unregisterOnSharedPreferenceChangeListener(this)
+    }
+
+    private fun unsubscribeAll() {
+        subscribers.clear()
     }
 }
