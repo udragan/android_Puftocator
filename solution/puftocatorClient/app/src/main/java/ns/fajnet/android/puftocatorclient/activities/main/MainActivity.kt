@@ -26,6 +26,7 @@ import ns.fajnet.android.puftocatorclient.activities.settings.SettingsActivity
 import ns.fajnet.android.puftocatorclient.common.Constants
 import ns.fajnet.android.puftocatorclient.common.LogEx
 import ns.fajnet.android.puftocatorclient.common.Utils
+import ns.fajnet.android.puftocatorclient.common.Utils.bitmapDescriptorFromVector
 import ns.fajnet.android.puftocatorclient.common.preferences.*
 import ns.fajnet.android.puftocatorclient.databinding.ActivityMainBinding
 import ns.fajnet.android.puftocatorclient.models.LocationInfo
@@ -215,7 +216,15 @@ class MainActivity : AppCompatActivity(),
         targetMarker = map.addMarker(
             MarkerOptions()
                 .position(LatLng(0.0, 0.0))
+                .anchor(0.5f, 0.5f)
                 .flat(true)
+                .icon(
+                    bitmapDescriptorFromVector(
+                        this,
+                        R.drawable.ic_location_dot_directional_24,
+                        BitmapDescriptorFactory.HUE_RED
+                    )
+                )
                 .title("Target")
                 .visible(false)
         )
