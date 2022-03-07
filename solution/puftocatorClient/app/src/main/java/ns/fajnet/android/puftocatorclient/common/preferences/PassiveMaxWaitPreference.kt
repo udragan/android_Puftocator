@@ -44,11 +44,13 @@ class PassiveMaxWaitPreference(private val context: Context) : IPreference,
                     Constants.PREFERENCE_DEFAULT_PASSIVE_MAX_WAIT_TIME
                 )
 
-            LogEx.d(
-                Constants.TAG_PREFERENCE_PASSIVE_MAX_WAIT_TIME,
-                "triggering ${subscribers.size} subscribers"
-            )
-            subscribers.forEach { x -> x.invoke() }
+            if (subscribers.any()) {
+                LogEx.d(
+                    Constants.TAG_PREFERENCE_PASSIVE_MAX_WAIT_TIME,
+                    "triggering ${subscribers.size} subscribers"
+                )
+                subscribers.forEach { x -> x.invoke() }
+            }
         }
     }
 

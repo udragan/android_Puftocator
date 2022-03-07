@@ -44,11 +44,13 @@ class ActiveRequestFastestIntervalPreference(private val context: Context) : IPr
                     Constants.PREFERENCE_DEFAULT_ACTIVE_REQUEST_FASTEST_INTERVAL
                 )
 
-            LogEx.d(
-                Constants.TAG_PREFERENCE_ACTIVE_REQUEST_FASTEST_INTERVAL,
-                "triggering ${subscribers.size} subscribers"
-            )
-            subscribers.forEach { x -> x.invoke() }
+            if (subscribers.any()) {
+                LogEx.d(
+                    Constants.TAG_PREFERENCE_ACTIVE_REQUEST_FASTEST_INTERVAL,
+                    "triggering ${subscribers.size} subscribers"
+                )
+                subscribers.forEach { x -> x.invoke() }
+            }
         }
     }
 

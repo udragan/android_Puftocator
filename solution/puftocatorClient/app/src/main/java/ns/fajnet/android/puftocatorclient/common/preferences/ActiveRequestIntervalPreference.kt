@@ -44,11 +44,13 @@ class ActiveRequestIntervalPreference(private val context: Context) : IPreferenc
                     Constants.PREFERENCE_DEFAULT_ACTIVE_REQUEST_INTERVAL
                 )
 
-            LogEx.d(
-                Constants.TAG_PREFERENCE_ACTIVE_REQUEST_INTERVAL,
-                "triggering ${subscribers.size} subscribers"
-            )
-            subscribers.forEach { x -> x.invoke() }
+            if (subscribers.any()) {
+                LogEx.d(
+                    Constants.TAG_PREFERENCE_ACTIVE_REQUEST_INTERVAL,
+                    "triggering ${subscribers.size} subscribers"
+                )
+                subscribers.forEach { x -> x.invoke() }
+            }
         }
     }
 

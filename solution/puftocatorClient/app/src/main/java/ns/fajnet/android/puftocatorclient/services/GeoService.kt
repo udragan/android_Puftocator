@@ -10,6 +10,7 @@ import android.content.Intent
 import android.graphics.BitmapFactory
 import android.location.Location
 import android.os.Binder
+import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.widget.Toast
@@ -40,6 +41,7 @@ class GeoService : Service() {
     private var database: FirebaseDatabase = FirebaseDatabase.getInstance()
     private var dbReference: DatabaseReference = database.getReference(Constants.FIREBASE_REFERENCE)
     private var isActiveTracking = true
+    private var resubscribeQueued = false
 
     private lateinit var serviceScope: CoroutineScope
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
@@ -319,11 +321,17 @@ class GeoService : Service() {
             return
         }
 
-        // TODO: queue resubscribe instead of executing immediately because when preferences are reset to default resubscribe is being triggered for each preference!!
-        LogEx.d(Constants.TAG_GEO_SERVICE, "queueing resubscribe..")
-
-        unsubscribeFromLocationUpdates()
-        subscribeToLocationUpdates()
+        if (!resubscribeQueued) {
+            resubscribeQueued = true
+            LogEx.d(Constants.TAG_GEO_SERVICE, "queueing resubscribe..")
+            Handler(Looper.getMainLooper()).postDelayed({
+                unsubscribeFromLocationUpdates()
+                subscribeToLocationUpdates()
+                resubscribeQueued = false
+            }, 500)
+        } else {
+            LogEx.d(Constants.TAG_GEO_SERVICE, "resubscribe already queued, skipping..")
+        }
     }
 
     private fun generateLocationRequest(): LocationRequest {

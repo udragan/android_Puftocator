@@ -44,11 +44,13 @@ class PassiveSmallestDisplacementPreference(private val context: Context) : IPre
                     Constants.PREFERENCE_DEFAULT_PASSIVE_SMALLEST_DISPLACEMENT
                 )
 
-            LogEx.d(
-                Constants.TAG_PREFERENCE_PASSIVE_SMALLEST_DISPLACEMENT,
-                "triggering ${subscribers.size} subscribers"
-            )
-            subscribers.forEach { x -> x.invoke() }
+            if (subscribers.any()) {
+                LogEx.d(
+                    Constants.TAG_PREFERENCE_PASSIVE_SMALLEST_DISPLACEMENT,
+                    "triggering ${subscribers.size} subscribers"
+                )
+                subscribers.forEach { x -> x.invoke() }
+            }
         }
     }
 

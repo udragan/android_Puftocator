@@ -45,11 +45,13 @@ class TriggerRadiusPreference(private val context: Context) : IPreference,
                     defaultValue
                 )!!
 
-            LogEx.d(
-                Constants.TAG_PREFERENCE_TRIGGER_RADIUS,
-                "triggering ${subscribers.size} subscribers"
-            )
-            subscribers.forEach { x -> x.invoke() }
+            if (subscribers.any()) {
+                LogEx.d(
+                    Constants.TAG_PREFERENCE_TRIGGER_RADIUS,
+                    "triggering ${subscribers.size} subscribers"
+                )
+                subscribers.forEach { x -> x.invoke() }
+            }
         }
     }
 

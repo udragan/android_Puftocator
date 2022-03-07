@@ -44,11 +44,13 @@ class DrawRadiusPreference(private val context: Context) : IPreference,
                     Constants.PREFERENCE_DEFAULT_DRAW_RADIUS
                 )
 
-            LogEx.d(
-                Constants.TAG_PREFERENCE_DRAW_RADIUS,
-                "triggering ${subscribers.size} subscribers"
-            )
-            subscribers.forEach { x -> x.invoke() }
+            if (subscribers.any()) {
+                LogEx.d(
+                    Constants.TAG_PREFERENCE_DRAW_RADIUS,
+                    "triggering ${subscribers.size} subscribers"
+                )
+                subscribers.forEach { x -> x.invoke() }
+            }
         }
     }
 

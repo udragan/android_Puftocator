@@ -44,11 +44,13 @@ class PassiveRequestIntervalPreference(private val context: Context) : IPreferen
                     Constants.PREFERENCE_DEFAULT_PASSIVE_REQUEST_INTERVAL
                 )
 
-            LogEx.d(
-                Constants.TAG_PREFERENCE_PASSIVE_REQUEST_INTERVAL,
-                "triggering ${subscribers.size} subscribers"
-            )
-            subscribers.forEach { x -> x.invoke() }
+            if (subscribers.any()) {
+                LogEx.d(
+                    Constants.TAG_PREFERENCE_PASSIVE_REQUEST_INTERVAL,
+                    "triggering ${subscribers.size} subscribers"
+                )
+                subscribers.forEach { x -> x.invoke() }
+            }
         }
     }
 

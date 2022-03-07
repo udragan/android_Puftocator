@@ -152,13 +152,9 @@ class MainActivity : AppCompatActivity(),
 
     override fun onMyLocationButtonClick(): Boolean {
         followMyLocation = true
+        zoomToMyLocationRadius()
 
-        if (drawRadiusPref.value()) {
-            zoomToMyLocationRadius()
-            return true
-        }
-
-        return false
+        return true
     }
 
     override fun onMapClick(point: LatLng) {
