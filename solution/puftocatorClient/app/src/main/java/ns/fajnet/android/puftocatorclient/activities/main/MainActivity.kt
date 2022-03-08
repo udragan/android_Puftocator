@@ -324,7 +324,8 @@ class MainActivity : AppCompatActivity(),
         map.isMyLocationEnabled = true
         fusedLocationClient.lastLocation.addOnSuccessListener {
             if (it != null) {
-                map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(it.latitude, it.longitude), 16f))
+                map.animateCamera(CameraUpdateFactory.newLatLng(LatLng(it.latitude, it.longitude)))
+                zoomToMyLocationRadius()
             }
         }
     }
