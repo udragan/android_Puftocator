@@ -9,9 +9,12 @@ internal class Constants {
 
         // geo service -------------------------------------------------------------------------------------------------
 
-        const val NOTIFICATION_CHANNEL_ID_GEO_SERVICE = "geoNotificationChannel"
+        const val NOTIFICATION_CHANNEL_ID_GEO_SERVICE = "geoNotificationChannel_passive"
         const val NOTIFICATION_CHANNEL_NAME_GEO_SERVICE = "GEO Service Channel"
         const val NOTIFICATION_SERVICE_ID_GEO_SERVICE = 1000
+
+        const val NOTIFICATION_CHANNEL_ID_GEO_SERVICE_ACTIVE = "geoNotificationChannel_active"
+        const val NOTIFICATION_CHANNEL_NAME_GEO_SERVICE_ACTIVE = "Active GEO Service Channel"
 
         // preference default values -----------------------------------------------------------------------------------
 

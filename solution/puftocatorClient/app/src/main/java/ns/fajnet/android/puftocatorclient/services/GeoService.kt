@@ -37,8 +37,10 @@ class GeoService : Service() {
     private val _liveTargetLocation = MutableLiveData<LocationInfo?>()
 
     private val mBinder: IBinder = MyBinder()
-    private val notificationBuilder = NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID_GEO_SERVICE)
+    private lateinit var notificationBuilder: NotificationCompat.Builder
     private lateinit var notificationManager: NotificationManagerCompat
+    private lateinit var notificationIntent: Intent
+    private lateinit var notificationPendingIntent: PendingIntent
 
     private var database: FirebaseDatabase = FirebaseDatabase.getInstance()
     private var dbReference: DatabaseReference = database.getReference(Constants.FIREBASE_REFERENCE)
@@ -156,6 +158,7 @@ class GeoService : Service() {
 
             override fun onCancelled(error: DatabaseError) {
                 Toast.makeText(applicationContext, "Could not read from database", Toast.LENGTH_LONG).show()
+                LogEx.e(Constants.TAG_GEO_SERVICE, "firebase connection cannot be established!")
             }
         }
 
@@ -169,7 +172,17 @@ class GeoService : Service() {
         passiveMaxWaitPreference = PassiveMaxWaitPreference(applicationContext)
         passiveSmallestDisplacementPreference = PassiveSmallestDisplacementPreference(applicationContext)
 
+        notificationBuilder = NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID_GEO_SERVICE)
         notificationManager = NotificationManagerCompat.from(this)
+        notificationIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        notificationPendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            notificationIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_CANCEL_CURRENT
+        )
     }
 
     private fun checkPrerequisites(): Boolean {
@@ -182,46 +195,30 @@ class GeoService : Service() {
     }
 
     private fun generateActiveNotification(content: String, silentNotification: Boolean): Notification {
-        val notificationIntent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
+        val channelId = if (silentNotification) {
+            Constants.NOTIFICATION_CHANNEL_ID_GEO_SERVICE
+        } else {
+            Constants.NOTIFICATION_CHANNEL_ID_GEO_SERVICE_ACTIVE
         }
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            notificationIntent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_CANCEL_CURRENT
-        )
 
-        return NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID_GEO_SERVICE)
+        return NotificationCompat.Builder(this, channelId)
             .setContentTitle(getString(R.string.geo_service_notification_title))
             .setContentText(content)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setLargeIcon(BitmapFactory.decodeResource(resources, android.R.drawable.ic_menu_myplaces))
-            .setContentIntent(pendingIntent)
-            .setOnlyAlertOnce(silentNotification)
+            .setContentIntent(notificationPendingIntent)
             .setColor(ContextCompat.getColor(this, R.color.teal_700))
             .setColorized(true)
             .build()
     }
 
     private fun generateInactiveNotification(): Notification {
-        val notificationIntent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            notificationIntent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_CANCEL_CURRENT
-        )
-
         return notificationBuilder
             .setContentTitle(getString(R.string.geo_service_notification_title))
             .setContentText(getString(R.string.geo_service_notification_text))
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setLargeIcon(null)
-            .setContentIntent(pendingIntent)
-            .setOnlyAlertOnce(true)
+            .setContentIntent(notificationPendingIntent)
             .build()
     }
 
@@ -370,8 +367,8 @@ class GeoService : Service() {
                 isActiveTracking = true
                 silentNotification = false
                 resubscribeToLocationUpdatesIfNeeded(isActiveTracking)
-                // TODO: check on physical device how the notification sound is behaving !!
             }
+            // TODO: check on physical device how the notification sound is behaving !!
             notificationManager.notify(
                 Constants.NOTIFICATION_SERVICE_ID_GEO_SERVICE,
                 generateActiveNotification(distance.toString(), silentNotification)

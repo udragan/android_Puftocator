@@ -17,18 +17,26 @@ class AppInit : Application() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val serviceChannel = NotificationChannel(
+            val serviceNotificationChannel = NotificationChannel(
                 Constants.NOTIFICATION_CHANNEL_ID_GEO_SERVICE,
                 Constants.NOTIFICATION_CHANNEL_NAME_GEO_SERVICE,
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_LOW
             )
-            serviceChannel.enableVibration(true)
+
+            val activeServiceNotificationChannel = NotificationChannel(
+                Constants.NOTIFICATION_CHANNEL_ID_GEO_SERVICE_ACTIVE,
+                Constants.NOTIFICATION_CHANNEL_NAME_GEO_SERVICE_ACTIVE,
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            activeServiceNotificationChannel.enableVibration(true)
+            activeServiceNotificationChannel.enableLights(true)
 
             val notificationManager = getSystemService(
                 NotificationManager::class.java
             )
 
-            notificationManager.createNotificationChannel(serviceChannel)
+            notificationManager.createNotificationChannel(serviceNotificationChannel)
+            notificationManager.createNotificationChannel(activeServiceNotificationChannel)
         }
     }
 }
