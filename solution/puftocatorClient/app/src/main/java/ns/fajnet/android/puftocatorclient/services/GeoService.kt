@@ -29,12 +29,21 @@ import ns.fajnet.android.puftocatorclient.common.LogEx
 import ns.fajnet.android.puftocatorclient.common.Utils
 import ns.fajnet.android.puftocatorclient.common.preferences.*
 import ns.fajnet.android.puftocatorclient.models.LocationInfo
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 
 class GeoService : Service() {
 
     // members ---------------------------------------------------------------------------------------------------------
 
+    private val checkInternetScheduler: ScheduledExecutorService by lazy { Executors.newScheduledThreadPool(1) }
+    private lateinit var checkInternetHandle: ScheduledFuture<*>
+    private lateinit var internetChecker: java.lang.Runnable
+
     private val _liveTargetLocation = MutableLiveData<LocationInfo?>()
+    private val _hasInternetConnection = MutableLiveData<Boolean>()
 
     private val mBinder: IBinder = MyBinder()
     private lateinit var notificationBuilder: NotificationCompat.Builder
@@ -62,6 +71,7 @@ class GeoService : Service() {
     private lateinit var passiveRequestFastestIntervalPreference: PassiveRequestFastestIntervalPreference
     private lateinit var passiveMaxWaitPreference: PassiveMaxWaitPreference
     private lateinit var passiveSmallestDisplacementPreference: PassiveSmallestDisplacementPreference
+
 
     // overrides -------------------------------------------------------------------------------------------------------
 
@@ -107,10 +117,14 @@ class GeoService : Service() {
         passiveRequestFastestIntervalPreference.dispose()
         passiveMaxWaitPreference.dispose()
         passiveSmallestDisplacementPreference.dispose()
+        checkInternetHandle.cancel(false)
         serviceScope.cancel()
     }
 
     // properties ------------------------------------------------------------------------------------------------------
+
+    val hasInternetConnection: LiveData<Boolean>
+        get() = _hasInternetConnection
 
     val liveTargetLocation: LiveData<LocationInfo?>
         get() = _liveTargetLocation
@@ -119,6 +133,20 @@ class GeoService : Service() {
 
     private fun initialize() {
         serviceScope = CoroutineScope(Dispatchers.IO)
+        internetChecker = Runnable {
+            serviceScope.launch {
+                val hasInternet = Utils.isDeviceOnline()
+                _hasInternetConnection.postValue(hasInternet)
+                LogEx.d(Constants.TAG_GEO_SERVICE, "hasInternet: $hasInternet")
+            }
+        }
+
+        checkInternetHandle = checkInternetScheduler.scheduleAtFixedRate(
+            internetChecker,
+            Constants.CHECK_INTERNET_CONNECTION_INTERVAL,
+            Constants.CHECK_INTERNET_CONNECTION_INTERVAL,
+            TimeUnit.SECONDS
+        )
 
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {

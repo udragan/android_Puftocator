@@ -33,7 +33,7 @@
         -->
         <activity
             android:name=".activities.main.MainActivity"
-            android:label="@string/title_activity_maps"
+            android:label="@string/main_activity_title"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

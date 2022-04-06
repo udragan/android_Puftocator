@@ -12,6 +12,10 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import java.io.IOException
+import java.net.InetSocketAddress
+import java.net.Socket
+import java.net.SocketAddress
 
 object Utils {
 
@@ -54,5 +58,20 @@ object Utils {
         DrawableCompat.setTint(vectorDrawable, color)
         vectorDrawable.draw(canvas)
         return BitmapDescriptorFactory.fromBitmap(bitmap)
+    }
+
+    // internet access -------------------------------------------------------------------------------------------------
+
+    fun isDeviceOnline(): Boolean {
+        return try {
+            val timeoutMs = 1500
+            val sock = Socket()
+            val socketAddress: SocketAddress = InetSocketAddress("8.8.8.8", 53)
+            sock.connect(socketAddress, timeoutMs)
+            sock.close()
+            true
+        } catch (e: IOException) {
+            false
+        }
     }
 }

@@ -9,6 +9,7 @@ internal class Constants {
 
         // geo service -------------------------------------------------------------------------------------------------
 
+        const val CHECK_INTERNET_CONNECTION_INTERVAL = 5L
         const val NOTIFICATION_CHANNEL_ID_GEO_SERVICE = "geoNotificationChannel_passive"
         const val NOTIFICATION_CHANNEL_NAME_GEO_SERVICE = "GEO Service Channel"
         const val NOTIFICATION_SERVICE_ID_GEO_SERVICE = 1000

@@ -20,6 +20,7 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
+import com.google.android.material.snackbar.Snackbar
 import com.google.maps.android.SphericalUtil
 import ns.fajnet.android.puftocatorclient.R
 import ns.fajnet.android.puftocatorclient.activities.settings.SettingsActivity
@@ -60,6 +61,7 @@ class MainActivity : AppCompatActivity(),
     private lateinit var activeMaxWaitPref: ActiveMaxWaitPreference
     private lateinit var triggerRadiusPref: TriggerRadiusPreference
     private lateinit var drawRadiusPref: DrawRadiusPreference
+    private lateinit var snackBar: Snackbar
 
     // overrides -------------------------------------------------------------------------------------------------------
 
@@ -205,6 +207,11 @@ class MainActivity : AppCompatActivity(),
         activeMaxWaitPref = ActiveMaxWaitPreference(applicationContext)
         triggerRadiusPref = TriggerRadiusPreference(applicationContext)
         drawRadiusPref = DrawRadiusPreference(applicationContext)
+        snackBar = Snackbar.make(binding.root, R.string.main_activity_message_no_internet, Snackbar.LENGTH_INDEFINITE)
+
+        binding.btnFindLocation.setOnClickListener {
+            // TEST
+        }
     }
 
     private fun initializeMarkers() {
@@ -242,6 +249,13 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun bindLiveData() {
+        viewModel.hasInternetConnection.observe(this) {
+            if (it) {
+                snackBar.dismiss()
+            } else {
+                snackBar.show()
+            }
+        }
         viewModel.liveTargetLocation.observe(this) {
             drawTargetMarker(it)
         }

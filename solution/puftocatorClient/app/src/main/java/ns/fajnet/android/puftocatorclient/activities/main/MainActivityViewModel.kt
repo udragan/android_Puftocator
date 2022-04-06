@@ -18,12 +18,17 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
     // members ---------------------------------------------------------------------------------------------------------
 
     private val context: Context by lazy { application }
-    private val targetObserver: Observer<LocationInfo?> = Observer { _liveTargetLocation.postValue(it) }
+    private val _hasInternetConnection: MutableLiveData<Boolean> by lazy { MutableLiveData<Boolean>() }
     private val _liveTargetLocation: MutableLiveData<LocationInfo?> by lazy { MutableLiveData<LocationInfo?>() }
+    private val internetObserver: Observer<Boolean> = Observer { _hasInternetConnection.postValue(it) }
+    private val targetObserver: Observer<LocationInfo?> = Observer { _liveTargetLocation.postValue(it) }
 
     private lateinit var geoService: GeoService
 
     // properties ------------------------------------------------------------------------------------------------------
+
+    val hasInternetConnection: LiveData<Boolean>
+        get() = _hasInternetConnection
 
     val liveTargetLocation: LiveData<LocationInfo?>
         get() = _liveTargetLocation
@@ -33,6 +38,7 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
     override fun onCleared() {
         super.onCleared()
 
+        geoService.hasInternetConnection.removeObserver(internetObserver)
         geoService.liveTargetLocation.removeObserver(targetObserver)
         LogEx.d(Constants.TAG_MAIN_ACTIVITY_VIEW_MODEL, "clearing observer")
     }
@@ -53,6 +59,7 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
         }
 
         geoService = service
+        geoService.hasInternetConnection.observeForever(internetObserver)
         geoService.liveTargetLocation.observeForever(targetObserver)
     }
 }
